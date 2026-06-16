@@ -1,0 +1,85 @@
+// ============================================================
+// Lentera — skema database
+// Sistem Poin & Karakter Siswa
+// ============================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Role {
+  KESISWAAN
+  BKA
+}
+
+enum Jenis {
+  PELANGGARAN
+  PRESTASI
+}
+
+// Sekolah (multi-tenant ready; untuk sekarang satu sekolah)
+model Sekolah {
+  id        String   @id @default(cuid())
+  nama      String
+  staff     Staff[]
+  siswa     Siswa[]
+  createdAt DateTime @default(now())
+}
+
+// Petugas yang boleh mencatat: Kesiswaan & BKA
+model Staff {
+  id        String    @id @default(cuid())
+  nama      String
+  username  String    @unique
+  password  String // hash bcrypt
+  role      Role
+  sekolah   Sekolah   @relation(fields: [sekolahId], references: [id], onDelete: Cascade)
+  sekolahId String
+  catatan   Catatan[] // catatan yang dibuat petugas ini
+  createdAt DateTime  @default(now())
+
+  @@index([sekolahId])
+}
+
+// Siswa — sekaligus akun login untuk siswa/wali
+model Siswa {
+  id        String    @id @default(cuid())
+  nama      String
+  kelas     String
+  nis       String    @unique
+  username  String    @unique
+  password  String
+  poinAwal  Int       @default(100)
+  sekolah   Sekolah   @relation(fields: [sekolahId], references: [id], onDelete: Cascade)
+  sekolahId String
+  catatan   Catatan[]
+  createdAt DateTime  @default(now())
+
+  @@index([sekolahId])
+}
+
+// Catatan kejadian (pelanggaran / prestasi)
+model Catatan {
+  id           String   @id @default(cuid())
+  siswa        Siswa    @relation(fields: [siswaId], references: [id], onDelete: Cascade)
+  siswaId      String
+  jenis        Jenis
+  kategori     String
+  poin         Int // bertanda: negatif untuk pelanggaran, positif untuk prestasi
+  keterangan   String?
+  tanggal      DateTime @db.Date
+  // pencatat: relasi opsional + snapshot nama (agar riwayat tetap utuh bila akun staff dihapus)
+  pencatat     Staff?   @relation(fields: [pencatatId], references: [id], onDelete: SetNull)
+  pencatatId   String?
+  pencatatNama String
+  createdAt    DateTime @default(now())
+
+  @@index([siswaId])
+  @@index([tanggal])
+}
