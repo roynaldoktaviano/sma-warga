@@ -9,12 +9,14 @@ export function ModalShell({
   children,
   footer,
   ariaLabel,
+  wide,
 }: {
   title: string;
   onClose: () => void;
   children: ReactNode;
   footer: ReactNode;
   ariaLabel?: string;
+  wide?: boolean;
 }) {
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -36,7 +38,7 @@ export function ModalShell({
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="modal" role="dialog" aria-modal="true" aria-label={ariaLabel || title}>
+      <div className={"modal" + (wide ? " modal--wide" : "")} role="dialog" aria-modal="true" aria-label={ariaLabel || title}>
         <div className="modal-head">
           <h3>{title}</h3>
           <button className="modal-x" onClick={onClose} aria-label="Tutup">

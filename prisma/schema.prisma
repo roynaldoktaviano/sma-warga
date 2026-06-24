@@ -66,6 +66,7 @@ model Siswa {
   agama        String     @default("")
   asalSD       String?
   statusDL     String?                    // D = Dalam kota, L = Luar kota
+  status       String     @default("AKTIF") // AKTIF | LULUS | PINDAH
   username     String     @unique
   password     String
   poinAwal     Int        @default(100)
@@ -77,6 +78,7 @@ model Siswa {
   createdAt    DateTime   @default(now())
 
   @@index([sekolahId])
+  @@index([status])
 }
 
 model Catatan {

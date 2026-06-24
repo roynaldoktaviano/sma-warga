@@ -8,35 +8,40 @@ import { Sidebar } from "@/components/Sidebar";
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const session = await requireSession();
 
-  let roleLabel: string;
-  let dotCls: string;
+  const isStaff = session.kind === "staff";
   let name: string;
   let sub: string;
-  const isStaff = session.kind === "staff";
+  let roleLabel: string;
 
   if (session.kind === "siswa") {
     const siswa = await prisma.siswa.findUnique({
       where: { id: session.sub },
       select: { nama: true, kelas: true },
     });
-    roleLabel = "Siswa";
-    dotCls = "ortu";
     name = siswa?.nama ?? session.name;
     sub = siswa?.kelas ?? "";
+    roleLabel = "Siswa";
   } else {
-    roleLabel = session.role === "KESISWAAN" ? "Kesiswaan" : "BKA";
-    dotCls = session.role === "BKA" ? "bka" : "";
     name = session.name;
-    sub = "Petugas";
+    sub = session.role === "KESISWAAN" ? "Kesiswaan" : "BKA";
+    roleLabel = sub;
+  }
+
+  const initials = name.split(" ").slice(0, 2).map((w) => w[0]).join("").toUpperCase();
+
+  if (isStaff) {
+    return (
+      <div className="app-root">
+        <Sidebar name={name} sub={sub} initials={initials} />
+        <main className="app-main">{children}</main>
+      </div>
+    );
   }
 
   return (
-    <div className="app-root">
-      <Topbar roleLabel={roleLabel} name={name} sub={sub} dotCls={dotCls} />
-      <div className="app-body">
-        {isStaff && <Sidebar />}
-        <main className="app-main">{children}</main>
-      </div>
+    <div className="app-root app-root--siswa">
+      <Topbar roleLabel={roleLabel} name={name} sub={sub} dotCls="ortu" />
+      <main className="app-main">{children}</main>
     </div>
   );
 }

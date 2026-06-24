@@ -9,6 +9,7 @@ import { Meter } from "@/components/Meter";
 import { Ledger } from "@/components/Ledger";
 import { RecordModalButton } from "@/components/RecordModalButton";
 import { DeleteStudentButton } from "@/components/DeleteStudentButton";
+import { UpdateStatusButton } from "@/components/UpdateStatusButton";
 import { IconBack } from "@/components/icons";
 
 export const dynamic = "force-dynamic";
@@ -70,6 +71,10 @@ export default async function SiswaPage({ params }: { params: { id: string } }) 
 
           <div style={{ marginTop: 18, display: "flex", flexDirection: "column", gap: 8 }}>
             <RecordModalButton students={[{ id: s.id, nama: s.nama, kelas: s.kelas }]} presetStudentId={s.id} block />
+            <div>
+              <div className="info-sub-label">Status Siswa</div>
+              <UpdateStatusButton id={s.id} current={s.status} />
+            </div>
             <DeleteStudentButton id={s.id} nama={s.nama} />
           </div>
         </div>

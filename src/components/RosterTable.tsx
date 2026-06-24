@@ -7,24 +7,29 @@ import { IconSearch, IconUsers } from "./icons";
 
 const PER_PAGE = 25;
 
+const STATUS_LABEL: Record<string, string> = { AKTIF: "Aktif", LULUS: "Lulus", PINDAH: "Pindah" };
+
 type Row = {
   id: string; nama: string; nis: string; nisn?: string | null;
   kelas: string; jenisKelamin: string; agama: string; poin: number;
+  status: string;
 };
 
 export function RosterTable({ rows }: { rows: Row[] }) {
-  const [q, setQ]       = useState("");
+  const [q, setQ]         = useState("");
   const [kelas, setKelas] = useState("");
+  const [status, setStatus] = useState("AKTIF");
   const [page, setPage]   = useState(1);
 
   const kelasList = useMemo(() => {
     const set = new Set<string>();
-    rows.forEach((r) => set.add(r.kelas));
+    rows.filter(r => r.status === (status || r.status)).forEach(r => set.add(r.kelas));
     return Array.from(set).sort();
-  }, [rows]);
+  }, [rows, status]);
 
   const filtered = useMemo(() => {
     const list = rows.filter((r) => {
+      if (status && r.status !== status) return false;
       if (kelas && r.kelas !== kelas) return false;
       if (q) {
         const k = q.toLowerCase();
@@ -38,7 +43,7 @@ export function RosterTable({ rows }: { rows: Row[] }) {
     });
     list.sort((a, b) => a.nama.localeCompare(b.nama, "id"));
     return list;
-  }, [rows, q, kelas]);
+  }, [rows, q, kelas, status]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
   const safePage   = Math.min(page, totalPages);
@@ -46,6 +51,7 @@ export function RosterTable({ rows }: { rows: Row[] }) {
 
   function onSearch(v: string) { setQ(v); setPage(1); }
   function onKelas(v: string)  { setKelas(v); setPage(1); }
+  function onStatus(v: string) { setStatus(v); setKelas(""); setPage(1); }
 
   // Halaman yang ditampilkan (max 5 tombol)
   const pageNums = useMemo(() => {
@@ -81,6 +87,12 @@ export function RosterTable({ rows }: { rows: Row[] }) {
           {kelasList.map((k) => (
             <option key={k} value={k}>{k}</option>
           ))}
+        </select>
+        <select className="filter" value={status} onChange={(e) => onStatus(e.target.value)}>
+          <option value="AKTIF">Aktif</option>
+          <option value="LULUS">Lulus</option>
+          <option value="PINDAH">Pindah</option>
+          <option value="">Semua</option>
         </select>
       </div>
 

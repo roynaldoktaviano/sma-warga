@@ -27,7 +27,7 @@ export function Topbar({
         <div className="brand">
           <div className="brand-crest">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo-sma-warga.png" alt="SMP Warga Surakarta" />
+            <img src="/logo-smp.jpg" alt="SMP Warga Surakarta" />
           </div>
           <div className="brand-text">
             <div className="brand-name">SMP Warga Surakarta</div>

@@ -283,6 +283,165 @@ export async function deletePrestasiAction(id: string): Promise<ActionResult> {
   return { ok: true };
 }
 
+// ---------- Preview & proses kenaikan kelas ----------
+export type KenaikanPreview = {
+  lulus:  { id: string; nama: string; kelas: string }[];
+  naik:   { id: string; nama: string; dari: string; ke: string }[];
+  skip:   { id: string; nama: string; kelas: string }[];
+};
+
+function nextKelas(kelas: string): { action: "lulus" | "naik" | "skip"; ke?: string } {
+  const m = kelas.trim().match(/^(\d+)(.*)/);
+  if (!m) return { action: "skip" };
+  const angka = parseInt(m[1]);
+  const suffix = m[2];
+  if (angka >= 9) return { action: "lulus" };
+  return { action: "naik", ke: String(angka + 1) + suffix };
+}
+
+export async function getKenaikanPreviewAction(): Promise<KenaikanPreview> {
+  await requireStaff();
+  const siswa = await prisma.siswa.findMany({
+    where: { status: "AKTIF" },
+    select: { id: true, nama: true, kelas: true },
+    orderBy: [{ kelas: "asc" }, { nama: "asc" }],
+  });
+
+  const lulus: KenaikanPreview["lulus"] = [];
+  const naik:  KenaikanPreview["naik"]  = [];
+  const skip:  KenaikanPreview["skip"]  = [];
+
+  for (const s of siswa) {
+    const res = nextKelas(s.kelas);
+    if (res.action === "lulus") lulus.push({ id: s.id, nama: s.nama, kelas: s.kelas });
+    else if (res.action === "naik") naik.push({ id: s.id, nama: s.nama, dari: s.kelas, ke: res.ke! });
+    else skip.push({ id: s.id, nama: s.nama, kelas: s.kelas });
+  }
+
+  return { lulus, naik, skip };
+}
+
+export async function prosesKenaikanKelasAction(): Promise<ActionResult> {
+  await requireStaff();
+  const siswa = await prisma.siswa.findMany({
+    where: { status: "AKTIF" },
+    select: { id: true, kelas: true },
+  });
+
+  const updates: Promise<unknown>[] = [];
+  for (const s of siswa) {
+    const res = nextKelas(s.kelas);
+    if (res.action === "lulus") {
+      updates.push(prisma.siswa.update({ where: { id: s.id }, data: { status: "LULUS" } }));
+    } else if (res.action === "naik") {
+      updates.push(prisma.siswa.update({ where: { id: s.id }, data: { kelas: res.ke! } }));
+    }
+  }
+
+  await Promise.all(updates);
+  revalidatePath("/dashboard");
+  return { ok: true };
+}
+
+// ---------- Update status siswa (pindah, dll) ----------
+export async function updateSiswaStatusAction(id: string, status: "AKTIF" | "LULUS" | "PINDAH"): Promise<ActionResult> {
+  await requireStaff();
+  const siswa = await prisma.siswa.findUnique({ where: { id } });
+  if (!siswa) return { ok: false, error: "Siswa tidak ditemukan." };
+  await prisma.siswa.update({ where: { id }, data: { status } });
+  revalidatePath("/dashboard");
+  revalidatePath(`/siswa/${id}`);
+  return { ok: true };
+}
+
+// ---------- Tambah akun staff ----------
+export async function addStaffAction(input: {
+  nama: string;
+  username: string;
+  password: string;
+  role: "KESISWAAN" | "BKA";
+}): Promise<ActionResult> {
+  await requireStaff();
+
+  const nama     = input.nama?.trim();
+  const username = input.username?.trim().toLowerCase();
+  const password = input.password?.trim();
+
+  if (!nama || !username || !password) return { ok: false, error: "Semua field wajib diisi." };
+  if (password.length < 6) return { ok: false, error: "Password minimal 6 karakter." };
+
+  const existing = await prisma.staff.findUnique({ where: { username } });
+  if (existing) return { ok: false, error: "Username sudah dipakai." };
+
+  const sekolah = await prisma.sekolah.findFirst();
+  if (!sekolah) return { ok: false, error: "Data sekolah belum ada." };
+
+  const hash = await bcrypt.hash(password, 10);
+  await prisma.staff.create({
+    data: { nama, username, password: hash, role: input.role, sekolahId: sekolah.id },
+  });
+
+  revalidatePath("/pengaturan");
+  return { ok: true };
+}
+
+// ---------- Hapus akun staff ----------
+export async function deleteStaffAction(targetId: string): Promise<ActionResult> {
+  const session = await requireStaff();
+  if (targetId === session.sub) return { ok: false, error: "Tidak bisa menghapus akun sendiri." };
+
+  const staff = await prisma.staff.findUnique({ where: { id: targetId } });
+  if (!staff) return { ok: false, error: "Akun tidak ditemukan." };
+
+  await prisma.staff.delete({ where: { id: targetId } });
+  revalidatePath("/pengaturan");
+  return { ok: true };
+}
+
+// ---------- Update akun staff ----------
+export async function updateAccountAction(input: {
+  nama?: string;
+  username?: string;
+  currentPassword?: string;
+  newPassword?: string;
+}): Promise<ActionResult> {
+  const session = await requireStaff();
+
+  const staff = await prisma.staff.findUnique({ where: { id: session.sub } });
+  if (!staff) return { ok: false, error: "Akun tidak ditemukan." };
+
+  // Kalau ganti password, verifikasi dulu
+  if (input.newPassword) {
+    if (!input.currentPassword) return { ok: false, error: "Masukkan kata sandi saat ini." };
+    const match = await bcrypt.compare(input.currentPassword, staff.password);
+    if (!match) return { ok: false, error: "Kata sandi saat ini salah." };
+    if (input.newPassword.length < 6) return { ok: false, error: "Kata sandi baru minimal 6 karakter." };
+  }
+
+  // Kalau ganti username, cek duplikat
+  if (input.username && input.username !== staff.username) {
+    const existing = await prisma.staff.findUnique({ where: { username: input.username } });
+    if (existing) return { ok: false, error: "Username sudah dipakai." };
+  }
+
+  const data: Record<string, string> = {};
+  if (input.nama?.trim())     data.nama     = input.nama.trim();
+  if (input.username?.trim()) data.username  = input.username.trim();
+  if (input.newPassword)      data.password  = await bcrypt.hash(input.newPassword, 10);
+
+  if (Object.keys(data).length === 0) return { ok: false, error: "Tidak ada perubahan." };
+
+  await prisma.staff.update({ where: { id: staff.id }, data });
+
+  // Refresh session kalau nama berubah
+  if (data.nama) {
+    const { createSession } = await import("@/lib/auth");
+    await createSession({ sub: session.sub, kind: "staff", role: session.role, name: data.nama });
+  }
+
+  return { ok: true };
+}
+
 // ---------- Logout ----------
 export async function logoutAction(): Promise<void> {
   destroySession();

@@ -2,7 +2,7 @@ import { requireStaff } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { AddPresensiModalButton } from "@/components/AddPresensiModalButton";
 import { DeletePresensiButton } from "@/components/DeletePresensiButton";
-import { IconCalendar, IconUsers } from "@/components/icons";
+import { IconCalendar, IconUsers, IconX, IconWarn } from "@/components/icons";
 
 export const dynamic = "force-dynamic";
 
@@ -52,23 +52,27 @@ export default async function PresensiPage() {
 
       <div className="stats">
         <div className="stat">
-          <div className="stat-label"><IconCalendar />Hari Ini</div>
+          <div className="stat-icon stat-icon--blue"><IconCalendar /></div>
+          <div className="stat-label">Hari Ini</div>
           <div className="stat-num">{totalHariIni}</div>
           <div className="stat-foot">siswa tidak hadir</div>
         </div>
         <div className="stat">
-          <div className="stat-label"><span className="stat-mini-dot" style={{ background: STATUS_COLOR.ALPA }} />Alpa</div>
-          <div className="stat-num" style={{ color: STATUS_COLOR.ALPA }}>{totalAlpa}</div>
+          <div className="stat-icon stat-icon--red"><IconX /></div>
+          <div className="stat-label">Alpa</div>
+          <div className="stat-num">{totalAlpa}</div>
           <div className="stat-foot">bulan ini</div>
         </div>
         <div className="stat">
-          <div className="stat-label"><span className="stat-mini-dot" style={{ background: STATUS_COLOR.SAKIT }} />Sakit</div>
-          <div className="stat-num" style={{ color: STATUS_COLOR.SAKIT }}>{totalSakit}</div>
+          <div className="stat-icon stat-icon--green"><IconUsers /></div>
+          <div className="stat-label">Sakit</div>
+          <div className="stat-num">{totalSakit}</div>
           <div className="stat-foot">bulan ini</div>
         </div>
         <div className="stat">
-          <div className="stat-label"><span className="stat-mini-dot" style={{ background: STATUS_COLOR.IZIN }} />Izin</div>
-          <div className="stat-num" style={{ color: STATUS_COLOR.IZIN }}>{totalIzin}</div>
+          <div className="stat-icon stat-icon--amber"><IconWarn /></div>
+          <div className="stat-label">Izin</div>
+          <div className="stat-num">{totalIzin}</div>
           <div className="stat-foot">bulan ini</div>
         </div>
       </div>

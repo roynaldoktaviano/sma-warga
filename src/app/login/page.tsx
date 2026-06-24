@@ -8,7 +8,7 @@ export default function LoginPage() {
         <div className="auth-brand-top">
           <div className="crest crest-lg">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo-sma-warga.png" alt="SMP Warga Surakarta" />
+            <img src="/logo-smp.jpg" alt="SMP Warga Surakarta" />
           </div>
           <b>SMP Warga Surakarta</b>
         </div>

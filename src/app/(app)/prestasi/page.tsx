@@ -2,7 +2,7 @@ import { requireStaff } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { AddPrestasiModalButton } from "@/components/AddPrestasiModalButton";
 import { DeletePrestasiButton } from "@/components/DeletePrestasiButton";
-import { IconTrophy } from "@/components/icons";
+import { IconTrophy, IconUp, IconGauge } from "@/components/icons";
 
 export const dynamic = "force-dynamic";
 
@@ -50,23 +50,27 @@ export default async function PrestasiPage() {
 
       <div className="stats">
         <div className="stat">
-          <div className="stat-label"><IconTrophy />Total</div>
+          <div className="stat-icon stat-icon--amber"><IconTrophy /></div>
+          <div className="stat-label">Total Prestasi</div>
           <div className="stat-num">{semua.length}</div>
-          <div className="stat-foot">prestasi tercatat</div>
+          <div className="stat-foot">tercatat di sistem</div>
         </div>
         <div className="stat">
-          <div className="stat-label"><span className="stat-mini-dot" style={{ background: TINGKAT_COLOR.NASIONAL }} />Nasional / Internasional</div>
-          <div className="stat-num" style={{ color: TINGKAT_COLOR.NASIONAL }}>{totalNasional}</div>
+          <div className="stat-icon stat-icon--purple"><IconUp /></div>
+          <div className="stat-label">Nasional / Internasional</div>
+          <div className="stat-num">{totalNasional}</div>
           <div className="stat-foot">pencapaian tertinggi</div>
         </div>
         <div className="stat">
-          <div className="stat-label"><span className="stat-mini-dot" style={{ background: TINGKAT_COLOR.PROVINSI }} />Provinsi</div>
-          <div className="stat-num" style={{ color: TINGKAT_COLOR.PROVINSI }}>{totalProvinsi}</div>
+          <div className="stat-icon stat-icon--green"><IconGauge /></div>
+          <div className="stat-label">Provinsi</div>
+          <div className="stat-num">{totalProvinsi}</div>
           <div className="stat-foot">tingkat provinsi</div>
         </div>
         <div className="stat">
-          <div className="stat-label"><span className="stat-mini-dot" style={{ background: TINGKAT_COLOR.KOTA }} />Kota</div>
-          <div className="stat-num" style={{ color: TINGKAT_COLOR.KOTA }}>{totalKota}</div>
+          <div className="stat-icon stat-icon--blue"><IconTrophy /></div>
+          <div className="stat-label">Kota</div>
+          <div className="stat-num">{totalKota}</div>
           <div className="stat-foot">tingkat kota</div>
         </div>
       </div>
