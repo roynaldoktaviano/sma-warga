@@ -1,8 +1,3 @@
-// ============================================================
-// Lentera — skema database
-// Sistem Poin & Karakter Siswa
-// ============================================================
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -23,7 +18,20 @@ enum Jenis {
   PRESTASI
 }
 
-// Sekolah (multi-tenant ready; untuk sekarang satu sekolah)
+enum StatusAbsen {
+  IZIN
+  SAKIT
+  ALPA
+}
+
+enum Tingkat {
+  SEKOLAH
+  KOTA
+  PROVINSI
+  NASIONAL
+  INTERNASIONAL
+}
+
 model Sekolah {
   id        String   @id @default(cuid())
   nama      String
@@ -32,49 +40,90 @@ model Sekolah {
   createdAt DateTime @default(now())
 }
 
-// Petugas yang boleh mencatat: Kesiswaan & BKA
 model Staff {
-  id        String    @id @default(cuid())
+  id        String      @id @default(cuid())
   nama      String
-  username  String    @unique
-  password  String // hash bcrypt
-  role      Role
-  sekolah   Sekolah   @relation(fields: [sekolahId], references: [id], onDelete: Cascade)
-  sekolahId String
-  catatan   Catatan[] // catatan yang dibuat petugas ini
-  createdAt DateTime  @default(now())
-
-  @@index([sekolahId])
-}
-
-// Siswa — sekaligus akun login untuk siswa/wali
-model Siswa {
-  id        String    @id @default(cuid())
-  nama      String
-  kelas     String
-  nis       String    @unique
-  username  String    @unique
+  username  String      @unique
   password  String
-  poinAwal  Int       @default(100)
-  sekolah   Sekolah   @relation(fields: [sekolahId], references: [id], onDelete: Cascade)
+  role      Role
+  sekolah   Sekolah     @relation(fields: [sekolahId], references: [id], onDelete: Cascade)
   sekolahId String
   catatan   Catatan[]
-  createdAt DateTime  @default(now())
+  presensi  Presensi[]
+  prestasi  Prestasi[]
+  createdAt DateTime    @default(now())
 
   @@index([sekolahId])
 }
 
-// Catatan kejadian (pelanggaran / prestasi)
+model Siswa {
+  id           String     @id @default(cuid())
+  nama         String
+  kelas        String
+  nis          String     @unique
+  nisn         String?    @unique
+  jenisKelamin String     @default("L")   // L atau P
+  agama        String     @default("")
+  asalSD       String?
+  statusDL     String?                    // D = Dalam kota, L = Luar kota
+  username     String     @unique
+  password     String
+  poinAwal     Int        @default(100)
+  sekolah      Sekolah    @relation(fields: [sekolahId], references: [id], onDelete: Cascade)
+  sekolahId    String
+  catatan      Catatan[]
+  presensi     Presensi[]
+  prestasi     Prestasi[]
+  createdAt    DateTime   @default(now())
+
+  @@index([sekolahId])
+}
+
 model Catatan {
   id           String   @id @default(cuid())
   siswa        Siswa    @relation(fields: [siswaId], references: [id], onDelete: Cascade)
   siswaId      String
   jenis        Jenis
   kategori     String
-  poin         Int // bertanda: negatif untuk pelanggaran, positif untuk prestasi
+  poin         Int
   keterangan   String?
   tanggal      DateTime @db.Date
-  // pencatat: relasi opsional + snapshot nama (agar riwayat tetap utuh bila akun staff dihapus)
+  pencatat     Staff?   @relation(fields: [pencatatId], references: [id], onDelete: SetNull)
+  pencatatId   String?
+  pencatatNama String
+  createdAt    DateTime @default(now())
+
+  @@index([siswaId])
+  @@index([tanggal])
+}
+
+model Presensi {
+  id           String      @id @default(cuid())
+  siswa        Siswa       @relation(fields: [siswaId], references: [id], onDelete: Cascade)
+  siswaId      String
+  tanggal      DateTime    @db.Date
+  status       StatusAbsen
+  keterangan   String?
+  pencatat     Staff?      @relation(fields: [pencatatId], references: [id], onDelete: SetNull)
+  pencatatId   String?
+  pencatatNama String
+  createdAt    DateTime    @default(now())
+
+  @@unique([siswaId, tanggal])
+  @@index([siswaId])
+  @@index([tanggal])
+}
+
+model Prestasi {
+  id           String   @id @default(cuid())
+  siswa        Siswa    @relation(fields: [siswaId], references: [id], onDelete: Cascade)
+  siswaId      String
+  judul        String
+  kategori     String
+  tingkat      Tingkat
+  peringkat    String?
+  tanggal      DateTime @db.Date
+  keterangan   String?
   pencatat     Staff?   @relation(fields: [pencatatId], references: [id], onDelete: SetNull)
   pencatatId   String?
   pencatatNama String

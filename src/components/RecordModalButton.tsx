@@ -6,6 +6,7 @@ import { KATEGORI } from "@/lib/points";
 import { todayISO } from "@/lib/format";
 import { addRecordAction } from "@/app/actions";
 import { ModalShell } from "./ModalShell";
+import { StudentSelect } from "./StudentSelect";
 import { toast } from "./Toaster";
 import { IconPlus, IconUp, IconDown } from "./icons";
 
@@ -116,21 +117,12 @@ export function RecordModalButton({
             </>
           }
         >
-          <div className="field">
-            <label htmlFor="mStudent">Siswa</label>
-            <select
-              id="mStudent"
-              value={siswaId}
-              disabled={lockSel}
-              onChange={(e) => setSiswaId(e.target.value)}
-            >
-              {sorted.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.nama} — {s.kelas}
-                </option>
-              ))}
-            </select>
-          </div>
+          {!lockSel && (
+            <div className="field">
+              <label>Siswa</label>
+              <StudentSelect students={sorted} value={siswaId} onChange={setSiswaId} />
+            </div>
+          )}
 
           <div className="field">
             <label>Jenis</label>

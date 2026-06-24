@@ -7,8 +7,8 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
 
 export const metadata: Metadata = {
-  title: "SMA Warga Surakarta — Sistem Poin & Karakter Siswa",
-  description: "Sistem poin & karakter siswa SMA Warga Surakarta.",
+  title: "SMP Warga Surakarta — Sistem Poin & Karakter Siswa",
+  description: "Sistem poin & karakter siswa SMP Warga Surakarta.",
 };
 
 export const viewport: Viewport = {

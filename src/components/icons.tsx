@@ -117,3 +117,36 @@ export const IconCheck = (p: P) => (
     <polyline points="20 6 9 17 4 12" />
   </svg>
 );
+
+export const IconCalendar = (p: P) => (
+  <svg {...base(p)} strokeWidth={1.8}>
+    <rect x="3" y="4" width="18" height="18" rx="2" />
+    <path d="M16 2v4M8 2v4M3 10h18" />
+  </svg>
+);
+
+export const IconTrophy = (p: P) => (
+  <svg {...base(p)} strokeWidth={1.8}>
+    <path d="M6 9H3.5a2.5 2.5 0 0 1 0-5H6" />
+    <path d="M18 9h2.5a2.5 2.5 0 0 0 0-5H18" />
+    <path d="M4 22h16" />
+    <path d="M10 22v-4" />
+    <path d="M14 22v-4" />
+    <path d="M6 4v8a6 6 0 0 0 12 0V4" />
+  </svg>
+);
+
+export const IconDownload = (p: P) => (
+  <svg {...base(p)} strokeWidth={1.8}>
+    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+    <polyline points="7 10 12 15 17 10" />
+    <line x1="12" y1="3" x2="12" y2="15" />
+  </svg>
+);
+
+export const IconClipboard = (p: P) => (
+  <svg {...base(p)} strokeWidth={1.8}>
+    <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+    <rect x="8" y="2" width="8" height="4" rx="1" />
+  </svg>
+);

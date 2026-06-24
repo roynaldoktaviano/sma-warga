@@ -8,9 +8,9 @@ export default function LoginPage() {
         <div className="auth-brand-top">
           <div className="crest crest-lg">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo-sma-warga.png" alt="SMA Warga Surakarta" />
+            <img src="/logo-sma-warga.png" alt="SMP Warga Surakarta" />
           </div>
-          <b>SMA Warga Surakarta</b>
+          <b>SMP Warga Surakarta</b>
         </div>
         <div className="auth-pitch">
           <h1>Menerangi perjalanan karakter setiap siswa.</h1>
@@ -19,7 +19,7 @@ export default function LoginPage() {
             jendela untuk ikut mendampingi.
           </p>
         </div>
-        <div className="auth-foot">Sistem Poin &amp; Karakter Siswa · SMA Warga Surakarta</div>
+        <div className="auth-foot">Sistem Poin &amp; Karakter Siswa · SMP Warga Surakarta</div>
       </div>
       <div className="auth-form-wrap">
         <LoginForm />

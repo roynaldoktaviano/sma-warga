@@ -5,6 +5,7 @@ import { daysSince } from "@/lib/format";
 import { RosterTable } from "@/components/RosterTable";
 import { AddStudentModalButton } from "@/components/AddStudentModalButton";
 import { ImportCSVModalButton } from "@/components/ImportCSVModalButton";
+import { ExportCSVButton } from "@/components/ExportCSVButton";
 import { RecordModalButton } from "@/components/RecordModalButton";
 import { IconUsers, IconGauge, IconWarn, IconPen } from "@/components/icons";
 
@@ -22,7 +23,12 @@ export default async function DashboardPage() {
     id: s.id,
     nama: s.nama,
     nis: s.nis,
+    nisn: s.nisn,
     kelas: s.kelas,
+    jenisKelamin: s.jenisKelamin,
+    agama: s.agama,
+    asalSD: s.asalSD,
+    statusDL: s.statusDL,
     poin: currentPoints(s.poinAwal, s.catatan),
   }));
 
@@ -45,6 +51,7 @@ export default async function DashboardPage() {
           <h1 className="page-title">Daftar Siswa</h1>
         </div>
         <div className="page-actions">
+          <ExportCSVButton students={rows} />
           <ImportCSVModalButton />
           <AddStudentModalButton />
           <RecordModalButton students={studentOpts} />

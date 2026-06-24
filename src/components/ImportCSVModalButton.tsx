@@ -9,24 +9,39 @@ import { IconUpload, IconCheck, IconX, IconWarn } from "./icons";
 
 type ParsedRow = ImportRow & { _line: number };
 
+// Format: NO*, NIS, NISN, NAMA, L/P, AG, KELAS, ASAL SD, D/L
 function parseCSV(text: string): { rows: ParsedRow[]; error?: string } {
   const lines = text.split(/\r?\n/).filter((l) => l.trim());
   if (lines.length < 2) return { rows: [], error: "File CSV kosong atau hanya berisi header." };
 
-  const header = lines[0].toLowerCase();
-  const dataLines = header.includes("nama") || header.includes("nis") ? lines.slice(1) : lines;
+  const firstLow = lines[0].toLowerCase();
+  const dataLines = (firstLow.includes("nama") || firstLow.includes("nis") || firstLow.includes("no"))
+    ? lines.slice(1)
+    : lines;
 
   const rows: ParsedRow[] = [];
   for (let i = 0; i < dataLines.length; i++) {
     const cols = dataLines[i].split(",").map((c) => c.trim().replace(/^"|"$/g, ""));
-    const [nama = "", kelas = "", nis = "", poinAwalRaw = "", username = "", password = ""] = cols;
-    const poinAwal = poinAwalRaw ? parseInt(poinAwalRaw, 10) : 100;
+    if (cols.every((c) => !c)) continue;
+
+    const offset = /^\d{1,3}$/.test(cols[0] || "") ? 1 : 0;
+
+    const nis    = cols[offset + 0] || "";
+    const nisn   = cols[offset + 1] || "";
+    const nama   = cols[offset + 2] || "";
+    const jk     = (cols[offset + 3] || "L").toUpperCase() === "P" ? "P" : "L";
+    const agama  = cols[offset + 4] || "";
+    const kelas  = cols[offset + 5] || "";
+    const asalSD = cols[offset + 6] || "";
+    const dl     = (cols[offset + 7] || "L").toUpperCase() === "D" ? "D" : "L";
+
     rows.push({
       _line: i + 2,
-      nama, kelas, nis,
-      poinAwal: Number.isFinite(poinAwal) ? poinAwal : 100,
-      username: username || undefined,
-      password: password || undefined,
+      nis, nisn: nisn || undefined, nama, kelas,
+      jenisKelamin: jk, agama,
+      asalSD: asalSD || undefined,
+      statusDL: dl,
+      poinAwal: 100,
     });
   }
   return { rows };
@@ -35,48 +50,34 @@ function parseCSV(text: string): { rows: ParsedRow[]; error?: string } {
 type Step = "idle" | "preview" | "result";
 
 export function ImportCSVModalButton() {
-  const [open, setOpen] = useState(false);
-  const [step, setStep] = useState<Step>("idle");
-  const [rows, setRows] = useState<ParsedRow[]>([]);
-  const [results, setResults] = useState<ImportResult[]>([]);
-  const [parseError, setParseError] = useState("");
+  const [open, setOpen]         = useState(false);
+  const [step, setStep]         = useState<Step>("idle");
+  const [rows, setRows]         = useState<ParsedRow[]>([]);
+  const [results, setResults]   = useState<ImportResult[]>([]);
+  const [parseError, setPErr]   = useState("");
   const [dragging, setDragging] = useState(false);
-  const fileRef = useRef<HTMLInputElement>(null);
-  const router = useRouter();
+  const fileRef  = useRef<HTMLInputElement>(null);
+  const router   = useRouter();
   const [pending, start] = useTransition();
 
-  function reset() {
-    setStep("idle");
-    setRows([]);
-    setResults([]);
-    setParseError("");
-  }
-
-  function close() {
-    setOpen(false);
-    reset();
-  }
+  function reset() { setStep("idle"); setRows([]); setResults([]); setPErr(""); }
+  function close() { setOpen(false); reset(); }
 
   function handleFile(file: File) {
-    if (!file.name.endsWith(".csv")) {
-      setParseError("Hanya file .csv yang didukung.");
-      return;
-    }
+    if (!file.name.endsWith(".csv")) { setPErr("Hanya file .csv yang didukung."); return; }
     const reader = new FileReader();
     reader.onload = (e) => {
       const text = e.target?.result as string;
       const { rows: parsed, error } = parseCSV(text);
-      if (error) { setParseError(error); return; }
-      setParseError("");
-      setRows(parsed);
-      setStep("preview");
+      if (error) { setPErr(error); return; }
+      if (parsed.length === 0) { setPErr("Tidak ada data siswa ditemukan."); return; }
+      setPErr(""); setRows(parsed); setStep("preview");
     };
     reader.readAsText(file);
   }
 
   function onDrop(e: React.DragEvent) {
-    e.preventDefault();
-    setDragging(false);
+    e.preventDefault(); setDragging(false);
     const file = e.dataTransfer.files[0];
     if (file) handleFile(file);
   }
@@ -84,18 +85,14 @@ export function ImportCSVModalButton() {
   function doImport() {
     start(async () => {
       const res = await importStudentsAction(rows.map(({ _line: _, ...r }) => r));
-      setResults(res);
-      setStep("result");
+      setResults(res); setStep("result");
       const ok = res.filter((r) => r.ok).length;
-      if (ok > 0) {
-        toast(`${ok} siswa berhasil diimport.`);
-        router.refresh();
-      }
+      if (ok > 0) { toast(`${ok} siswa berhasil diimport.`); router.refresh(); }
     });
   }
 
   const successCount = results.filter((r) => r.ok).length;
-  const failCount = results.filter((r) => !r.ok).length;
+  const failCount    = results.filter((r) => !r.ok).length;
 
   return (
     <>
@@ -136,32 +133,27 @@ export function ImportCSVModalButton() {
                 <b>Drag &amp; drop file CSV di sini</b>
                 <span>atau klik untuk memilih file</span>
                 <input
-                  ref={fileRef}
-                  type="file"
-                  accept=".csv"
-                  style={{ display: "none" }}
+                  ref={fileRef} type="file" accept=".csv" style={{ display: "none" }}
                   onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }}
                 />
               </div>
 
               {parseError && (
-                <div className="csv-alert">
-                  <IconWarn style={{ width: 15, height: 15 }} /> {parseError}
-                </div>
+                <div className="csv-alert"><IconWarn style={{ width: 15, height: 15 }} /> {parseError}</div>
               )}
 
               <div className="csv-format">
-                <div className="csv-format-label">Format kolom CSV (header opsional):</div>
-                <code>nama, kelas, nis, poin_awal, username, password</code>
+                <div className="csv-format-label">Format kolom CSV:</div>
+                <code>NO, NIS, NISN, NAMA, L/P, AG, KELAS, ASAL SD, D/L</code>
                 <div className="csv-format-hint">
-                  Kolom wajib: <b>nama</b>, <b>kelas</b>, <b>nis</b>. Kolom lain opsional — jika kosong: username = NIS, password = <b>siswa123</b>.
+                  Kolom <b>NO</b> opsional (dilewati otomatis). Kolom kosong = default (password: <b>siswa123</b>, poin: 100).
                 </div>
                 <div className="csv-format-example">
                   <div className="csv-format-label">Contoh:</div>
                   <code>
-                    nama,kelas,nis,poin_awal,username,password<br />
-                    Rangga Putra,XII IPA 1,24009,100,,<br />
-                    Siti Rahma,XI IPS 2,24010,,24010,rahasia
+                    NO,NIS,NISN,NAMA,L/P,AG,KELAS,ASAL SD,D/L<br />
+                    1,10507,0121836315,Abed Schot Tandilangi,L,Kristen,VII A,SD N 01 Bandardawung,L<br />
+                    2,10508,3139923934,Aldan Abhyaksa Firmansyah,L,Islam,VII A,SD Negeri Kudu 01,L
                   </code>
                 </div>
               </div>
@@ -172,25 +164,28 @@ export function ImportCSVModalButton() {
             <div>
               <div className="csv-info">
                 <IconCheck style={{ width: 14, height: 14, color: "var(--good)" }} />
-                <b>{rows.length} baris</b> siap diimport. Periksa data sebelum melanjutkan.
+                <b>{rows.length} siswa</b> siap diimport. Periksa sebelum melanjutkan.
               </div>
               <div className="csv-table-wrap">
                 <table className="csv-table">
                   <thead>
                     <tr>
-                      <th>#</th><th>Nama</th><th>Kelas</th><th>NIS</th>
-                      <th>Poin Awal</th><th>Username Login</th>
+                      <th>#</th><th>NIS</th><th>NISN</th><th>Nama</th>
+                      <th>L/P</th><th>Agama</th><th>Kelas</th><th>Asal SD</th><th>D/L</th>
                     </tr>
                   </thead>
                   <tbody>
                     {rows.map((r) => (
                       <tr key={r._line}>
                         <td className="muted">{r._line}</td>
-                        <td>{r.nama || <span className="csv-missing">kosong</span>}</td>
-                        <td>{r.kelas || <span className="csv-missing">kosong</span>}</td>
                         <td className="mono">{r.nis || <span className="csv-missing">kosong</span>}</td>
-                        <td className="mono">{r.poinAwal ?? 100}</td>
-                        <td className="muted mono">{r.username || r.nis}</td>
+                        <td className="mono">{r.nisn || <span className="muted">—</span>}</td>
+                        <td>{r.nama || <span className="csv-missing">kosong</span>}</td>
+                        <td>{r.jenisKelamin}</td>
+                        <td>{r.agama || <span className="muted">—</span>}</td>
+                        <td>{r.kelas || <span className="csv-missing">kosong</span>}</td>
+                        <td>{r.asalSD || <span className="muted">—</span>}</td>
+                        <td>{r.statusDL}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -219,8 +214,7 @@ export function ImportCSVModalButton() {
                         <td>
                           {r.ok
                             ? <span className="csv-badge-ok"><IconCheck style={{ width: 12, height: 12 }} />Berhasil</span>
-                            : <span className="csv-badge-fail"><IconX style={{ width: 12, height: 12 }} />{r.error}</span>
-                          }
+                            : <span className="csv-badge-fail"><IconX style={{ width: 12, height: 12 }} />{r.error}</span>}
                         </td>
                       </tr>
                     ))}

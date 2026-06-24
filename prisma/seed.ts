@@ -98,7 +98,7 @@ async function main() {
   await prisma.sekolah.deleteMany();
 
   const sekolah = await prisma.sekolah.create({
-    data: { nama: "SMA Warga Surakarta" },
+    data: { nama: "SMP Warga Surakarta" },
   });
 
   const hashStaff = await bcrypt.hash("kesiswaan123", 10);

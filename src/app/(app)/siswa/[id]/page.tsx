@@ -8,6 +8,7 @@ import { StatusPill } from "@/components/StatusPill";
 import { Meter } from "@/components/Meter";
 import { Ledger } from "@/components/Ledger";
 import { RecordModalButton } from "@/components/RecordModalButton";
+import { DeleteStudentButton } from "@/components/DeleteStudentButton";
 import { IconBack } from "@/components/icons";
 
 export const dynamic = "force-dynamic";
@@ -38,11 +39,19 @@ export default async function SiswaPage({ params }: { params: { id: string } }) 
             <Avatar name={s.nama} large />
             <div className="profile-id">
               <b>{s.nama}</b>
-              <span>
-                {s.kelas} · NIS <span className="mono">{s.nis}</span>
-              </span>
+              <span className="mono">{s.nis}</span>
             </div>
           </div>
+
+          <dl className="info-list">
+            <div><dt>NIS</dt><dd className="mono">{s.nis}</dd></div>
+            {s.nisn && <div><dt>NISN</dt><dd className="mono">{s.nisn}</dd></div>}
+            <div><dt>Kelas</dt><dd>{s.kelas}</dd></div>
+            <div><dt>L/P</dt><dd>{s.jenisKelamin === "P" ? "Perempuan" : "Laki-laki"}</dd></div>
+            <div><dt>Agama</dt><dd>{s.agama || "—"}</dd></div>
+            {s.asalSD && <div><dt>Asal SD</dt><dd>{s.asalSD}</dd></div>}
+            {s.statusDL && <div><dt>Domisili</dt><dd>{s.statusDL === "D" ? "Dalam kota" : "Luar kota"}</dd></div>}
+          </dl>
 
           <div className="score-row">
             <div className="score" style={{ color: st.color }}>{p}</div>
@@ -59,8 +68,9 @@ export default async function SiswaPage({ params }: { params: { id: string } }) 
             <div className="mini"><div className="mini-num down">−{stt.down}</div><div className="mini-lab">Poin berkurang</div></div>
           </div>
 
-          <div style={{ marginTop: 18 }}>
+          <div style={{ marginTop: 18, display: "flex", flexDirection: "column", gap: 8 }}>
             <RecordModalButton students={[{ id: s.id, nama: s.nama, kelas: s.kelas }]} presetStudentId={s.id} block />
+            <DeleteStudentButton id={s.id} nama={s.nama} />
           </div>
         </div>
 
