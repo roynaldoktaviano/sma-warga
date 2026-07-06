@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { requireStaff } from "@/lib/auth";
+import { requireStaff, canVerify as checkCanVerify, canInput } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { currentPoints, studentStats, statusOf } from "@/lib/points";
 import { Avatar } from "@/components/Avatar";
@@ -15,11 +15,23 @@ import { IconBack } from "@/components/icons";
 export const dynamic = "force-dynamic";
 
 export default async function SiswaPage({ params }: { params: { id: string } }) {
-  await requireStaff();
+  const session = await requireStaff();
+  const role = session.role ?? "";
 
   const s = await prisma.siswa.findUnique({
     where: { id: params.id },
-    include: { catatan: { orderBy: [{ tanggal: "desc" }, { createdAt: "desc" }] } },
+    include: {
+      catatan: {
+        orderBy: [{ tanggal: "desc" }, { createdAt: "desc" }],
+        select: {
+          id: true, poin: true, kategori: true, keterangan: true,
+          tanggal: true, pencatatNama: true,
+          statusVerif: true,
+          verifikasiWakaNama: true,
+          verifikasiKepsekNama: true,
+        },
+      },
+    },
   });
   if (!s) notFound();
 
@@ -79,7 +91,12 @@ export default async function SiswaPage({ params }: { params: { id: string } }) 
           </div>
         </div>
 
-        <Ledger catatan={s.catatan} canDelete />
+        <Ledger
+          catatan={s.catatan}
+          canDelete={canInput(role)}
+          canVerify={checkCanVerify(role)}
+          role={role}
+        />
       </div>
     </div>
   );

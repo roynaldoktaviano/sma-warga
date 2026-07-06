@@ -1,9 +1,10 @@
 export const dynamic = "force-dynamic";
 
-import { requireSession } from "@/lib/auth";
+import { requireSession, ROLE_LABEL } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Topbar } from "@/components/Topbar";
 import { Sidebar } from "@/components/Sidebar";
+import type { StaffRole } from "@/lib/auth";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const session = await requireSession();
@@ -11,7 +12,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const isStaff = session.kind === "staff";
   let name: string;
   let sub: string;
-  let roleLabel: string;
 
   if (session.kind === "siswa") {
     const siswa = await prisma.siswa.findUnique({
@@ -20,11 +20,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     });
     name = siswa?.nama ?? session.name;
     sub = siswa?.kelas ?? "";
-    roleLabel = "Siswa";
   } else {
     name = session.name;
-    sub = session.role === "KESISWAAN" ? "Kesiswaan" : "BKA";
-    roleLabel = sub;
+    sub = ROLE_LABEL[session.role as StaffRole] ?? session.role ?? "";
   }
 
   const initials = name.split(" ").slice(0, 2).map((w) => w[0]).join("").toUpperCase();
@@ -32,7 +30,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   if (isStaff) {
     return (
       <div className="app-root">
-        <Sidebar name={name} sub={sub} initials={initials} />
+        <Sidebar name={name} sub={sub} initials={initials} role={session.role ?? ""} />
         <main className="app-main">{children}</main>
       </div>
     );
@@ -40,7 +38,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="app-root app-root--siswa">
-      <Topbar roleLabel={roleLabel} name={name} sub={sub} dotCls="ortu" />
+      <Topbar roleLabel="Siswa" name={name} sub={sub} dotCls="ortu" />
       <main className="app-main">{children}</main>
     </div>
   );

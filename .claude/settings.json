@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node -e ' *)",
+      "Bash(mkdir -p /Users/user/Roy/sma-warga/src/app/\\\\\\(app\\\\\\)/ekskul/\\\\[id\\\\])"
+    ],
+    "additionalDirectories": [
+      "/Users/user/Roy/sma-warga/src/app/(app)/ekskul"
+    ]
+  }
+}

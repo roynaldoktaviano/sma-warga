@@ -1,6 +1,7 @@
 import { fmtTanggal } from "@/lib/format";
-import { IconUp, IconDown, IconEmpty } from "./icons";
+import { IconUp, IconDown, IconEmpty, IconCheck, IconX } from "./icons";
 import { DeleteRecordButton } from "./DeleteRecordButton";
+import { VerifikasiButton } from "./VerifikasiButton";
 
 export type LedgerEntry = {
   id: string;
@@ -9,9 +10,28 @@ export type LedgerEntry = {
   keterangan: string | null;
   tanggal: Date;
   pencatatNama: string;
+  statusVerif: string;
+  verifikasiWakaNama?: string | null;
+  verifikasiKepsekNama?: string | null;
 };
 
-export function Ledger({ catatan, canDelete }: { catatan: LedgerEntry[]; canDelete: boolean }) {
+const VERIF_LABEL: Record<string, string> = {
+  PENDING:  "Menunggu verifikasi",
+  VERIFIED: "Terverifikasi",
+  REJECTED: "Ditolak",
+};
+
+export function Ledger({
+  catatan,
+  canDelete,
+  canVerify,
+  role,
+}: {
+  catatan: LedgerEntry[];
+  canDelete: boolean;
+  canVerify?: boolean;
+  role?: string;
+}) {
   return (
     <div className="card">
       <div className="ledger-head">
@@ -28,18 +48,29 @@ export function Ledger({ catatan, canDelete }: { catatan: LedgerEntry[]; canDele
       ) : (
         <div className="ledger">
           {catatan.map((r) => {
-            const up = r.poin >= 0;
+            const up       = r.poin >= 0;
+            const pending  = r.statusVerif === "PENDING";
+            const rejected = r.statusVerif === "REJECTED";
+            const verified = r.statusVerif === "VERIFIED";
+
+            // Apakah role ini sudah verifikasi?
+            const wakaVerified   = !!r.verifikasiWakaNama;
+            const kepsekVerified = !!r.verifikasiKepsekNama;
+            const thisRoleVerified =
+              (role === "KESISWAAN" && wakaVerified) ||
+              (role === "KEPSEK"    && kepsekVerified);
+
             return (
-              <div className="entry" key={r.id}>
+              <div className={"entry" + (rejected ? " entry--rejected" : "")} key={r.id}>
                 <div
                   className="entry-ic"
                   style={
-                    up
-                      ? { background: "var(--good-bg)", color: "var(--good)" }
-                      : { background: "var(--bad-bg)", color: "var(--bad)" }
+                    rejected ? { background: "var(--bad-bg)", color: "var(--bad)" }
+                    : up ? { background: "var(--good-bg)", color: "var(--good)" }
+                    : { background: "var(--bad-bg)", color: "var(--bad)" }
                   }
                 >
-                  {up ? <IconUp /> : <IconDown />}
+                  {rejected ? <IconX /> : up ? <IconUp /> : <IconDown />}
                 </div>
                 <div className="entry-main">
                   <div className="entry-cat">{r.kategori}</div>
@@ -49,13 +80,37 @@ export function Ledger({ catatan, canDelete }: { catatan: LedgerEntry[]; canDele
                     <i className="sep" />
                     <span>{r.pencatatNama}</span>
                   </div>
+                  {/* Status verifikasi */}
+                  <div className="verif-row">
+                    <span className={
+                      "verif-badge " +
+                      (verified ? "verif-badge--verified" : rejected ? "verif-badge--rejected" : "verif-badge--pending")
+                    }>
+                      {VERIF_LABEL[r.statusVerif] ?? r.statusVerif}
+                    </span>
+                    {(pending || verified) && (
+                      <>
+                        <span className={"verif-check" + (wakaVerified ? " verif-check--done" : "")}>
+                          {wakaVerified ? "✓" : "○"} Waka{wakaVerified ? ` (${r.verifikasiWakaNama})` : ""}
+                        </span>
+                        <span className={"verif-check" + (kepsekVerified ? " verif-check--done" : "")}>
+                          {kepsekVerified ? "✓" : "○"} Kepsek{kepsekVerified ? ` (${r.verifikasiKepsekNama})` : ""}
+                        </span>
+                      </>
+                    )}
+                  </div>
                 </div>
                 <div className="entry-right">
-                  <span className={"delta " + (up ? "up" : "down")}>
-                    {up ? "+" : "−"}
-                    {Math.abs(r.poin)}
-                  </span>
-                  {canDelete ? <DeleteRecordButton recordId={r.id} /> : null}
+                  {!rejected && (
+                    <span className={"delta " + (pending ? "pending" : up ? "up" : "down")}>
+                      {pending ? "?" : up ? "+" : "−"}
+                      {pending ? "" : Math.abs(r.poin)}
+                    </span>
+                  )}
+                  {canVerify && pending && !thisRoleVerified && (
+                    <VerifikasiButton catatanId={r.id} role={role!} />
+                  )}
+                  {canDelete && !verified && <DeleteRecordButton recordId={r.id} />}
                 </div>
               </div>
             );

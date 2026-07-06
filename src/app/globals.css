@@ -233,6 +233,72 @@ a { color: inherit; text-decoration: none; }
 .staff-self-badge { font-size: 11px; color: var(--ink-faint); }
 
 /* ============================================================
+   Ekskul
+   ============================================================ */
+.ekskul-head {
+  display: grid; grid-template-columns: 1fr 200px 100px 100px; gap: 12px;
+  padding: 8px 16px; font-size: 11px; letter-spacing: .05em; text-transform: uppercase;
+  color: var(--ink-faint); font-weight: 500; border-bottom: 1px solid var(--line);
+}
+.ekskul-row {
+  display: grid; grid-template-columns: 1fr 200px 100px 100px; gap: 12px;
+  align-items: center; padding: 11px 16px; font-size: 14px;
+  border-bottom: 1px solid var(--line-soft);
+}
+.ekskul-row:last-child { border-bottom: none; }
+.ekskul-row--link { text-decoration: none; color: inherit; cursor: pointer; transition: background .1s; }
+.ekskul-row--link:hover { background: var(--surface-raised); }
+
+/* Ekskul anggota list */
+.ekskul-anggota-list { display: flex; flex-direction: column; gap: 0; }
+.ekskul-anggota-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 0; border-bottom: 1px solid var(--line-soft);
+}
+.ekskul-anggota-row:last-child { border-bottom: none; }
+
+/* Tahun ajaran status badge */
+.ta-status {
+  display: inline-block; font-size: 11px; font-weight: 600;
+  padding: 2px 8px; border-radius: 4px;
+}
+.ta-status--persiapan { background: var(--warn-bg); color: var(--warn); }
+.ta-status--berjalan  { background: var(--good-bg); color: var(--good); }
+.ta-status--selesai   { background: var(--line-soft); color: var(--ink-faint); }
+
+/* Verifikasi tatib */
+.verif-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 4px;
+}
+.verif-badge--pending  { background: var(--warn-bg); color: var(--warn); }
+.verif-badge--verified { background: var(--good-bg); color: var(--good); }
+.verif-badge--rejected { background: var(--bad-bg);  color: var(--bad);  }
+.verif-row { display: flex; align-items: center; gap: 6px; margin-top: 4px; }
+.verif-check { font-size: 11px; color: var(--ink-faint); }
+.verif-check--done { color: var(--good); font-weight: 500; }
+
+/* ============================================================
+   Skeleton loading
+   ============================================================ */
+@keyframes shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position:  400px 0; }
+}
+.sk {
+  border-radius: 6px;
+  background: linear-gradient(90deg, var(--line-soft) 25%, var(--line) 50%, var(--line-soft) 75%);
+  background-size: 800px 100%;
+  animation: shimmer 1.4s infinite linear;
+}
+@media (prefers-color-scheme: dark) {
+  .sk {
+    background: linear-gradient(90deg, #1e293b 25%, #263145 50%, #1e293b 75%);
+    background-size: 800px 100%;
+  }
+}
+
+/* ============================================================
    Layout
    ============================================================ */
 .shell { padding: 24px 28px 48px; }
@@ -471,6 +537,9 @@ a { color: inherit; text-decoration: none; }
 .delta { font-family: var(--mono); font-weight: 700; font-size: 14.5px; white-space: nowrap; }
 .delta.up { color: var(--good); }
 .delta.down { color: var(--bad); }
+.delta.pending { color: var(--ink-faint); font-size: 13px; }
+.entry--rejected { opacity: .55; }
+.entry--rejected .entry-cat { text-decoration: line-through; }
 .entry-del { opacity: 0; transition: opacity .12s; }
 .entry:hover .entry-del { opacity: 1; }
 .entry-del button {

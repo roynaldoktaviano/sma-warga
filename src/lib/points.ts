@@ -64,21 +64,25 @@ export const KATEGORI: Record<"pelanggaran" | "prestasi", KategoriItem[]> = {
 };
 
 // --- perhitungan dari daftar catatan (poin sudah bertanda) ---
-export type CatatanLike = { poin: number };
+// Hanya catatan VERIFIED yang mempengaruhi poin
+export type CatatanLike = { poin: number; statusVerif?: string };
 
 export function currentPoints(poinAwal: number, catatan: CatatanLike[]): number {
-  return catatan.reduce((acc, c) => acc + c.poin, poinAwal);
+  return catatan
+    .filter(c => !c.statusVerif || c.statusVerif === "VERIFIED")
+    .reduce((acc, c) => acc + c.poin, poinAwal);
 }
 
-export type Stats = { pres: number; pel: number; up: number; down: number };
+export type Stats = { pres: number; pel: number; up: number; down: number; pending: number };
 
 export function studentStats(catatan: CatatanLike[]): Stats {
-  let pres = 0, pel = 0, up = 0, down = 0;
+  let pres = 0, pel = 0, up = 0, down = 0, pending = 0;
   for (const c of catatan) {
+    if (c.statusVerif === "PENDING") { pending++; continue; }
     if (c.poin >= 0) { pres++; up += c.poin; }
     else { pel++; down += Math.abs(c.poin); }
   }
-  return { pres, pel, up, down };
+  return { pres, pel, up, down, pending };
 }
 
 export function initials(name: string): string {

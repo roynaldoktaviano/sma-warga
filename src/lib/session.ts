@@ -5,7 +5,7 @@
 import { SignJWT, jwtVerify } from "jose";
 
 export type SessionKind = "staff" | "siswa";
-export type SessionRole = "KESISWAAN" | "BKA";
+export type SessionRole = "KESISWAAN" | "KEPSEK" | "GURU" | "GURU_BK" | "GURU_EKSKUL";
 
 export type Session = {
   sub: string; // id user (Staff.id atau Siswa.id)

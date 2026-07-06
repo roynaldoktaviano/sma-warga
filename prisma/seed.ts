@@ -115,10 +115,10 @@ async function main() {
   const hashBka = await bcrypt.hash("bka123", 10);
   const bka = await prisma.staff.create({
     data: {
-      nama: "Bu Sari (BKA)",
+      nama: "Bu Sari (BK)",
       username: "bka",
       password: hashBka,
-      role: Role.BKA,
+      role: Role.GURU_BK,
       sekolahId: sekolah.id,
     },
   });

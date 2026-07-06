@@ -3,10 +3,14 @@ import { prisma } from "@/lib/prisma";
 import { AccountForm } from "@/components/AccountForm";
 import { AddStaffModalButton } from "@/components/AddStaffModalButton";
 import { DeleteStaffButton } from "@/components/DeleteStaffButton";
+import { ResetPasswordSiswaButton } from "@/components/ResetPasswordSiswaButton";
 
 export const dynamic = "force-dynamic";
 
-const ROLE_LABEL: Record<string, string> = { KESISWAAN: "Kesiswaan", BKA: "BKA" };
+const ROLE_LABEL: Record<string, string> = {
+  KESISWAAN: "Waka Kesiswaan", KEPSEK: "Kepala Sekolah",
+  GURU: "Guru", GURU_BK: "Guru BK", GURU_EKSKUL: "Guru Ekskul",
+};
 
 export default async function PengaturanPage() {
   const session = await requireStaff();
@@ -71,6 +75,18 @@ export default async function PengaturanPage() {
               <DeleteStaffButton id={s.id} isSelf={s.id === session.sub} />
             </div>
           ))}
+        </div>
+      </div>
+
+      {/* Reset password siswa */}
+      <div style={{ marginTop: 24 }}>
+        <div className="card card-pad">
+          <div className="settings-section-title">Reset Password Siswa</div>
+          <p style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 14 }}>
+            Reset password semua siswa menjadi <b>NIS</b> masing-masing. Gunakan ini setelah import data baru atau jika siswa lupa password.
+            Login siswa menggunakan <b>NISN</b> sebagai username dan <b>NIS</b> sebagai kata sandi default.
+          </p>
+          <ResetPasswordSiswaButton />
         </div>
       </div>
     </div>

@@ -16,7 +16,7 @@ export default async function DashboardPage() {
   await requireStaff();
 
   const siswa = await prisma.siswa.findMany({
-    include: { catatan: { select: { poin: true, tanggal: true } } },
+    include: { catatan: { select: { poin: true, tanggal: true, statusVerif: true } } },
     orderBy: { nama: "asc" },
   });
 

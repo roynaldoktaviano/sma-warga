@@ -3,19 +3,18 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { logoutAction } from "@/app/actions";
-import { IconClipboard, IconCalendar, IconTrophy, IconSettings, IconLogout } from "./icons";
+import { IconClipboard, IconCalendar, IconTrophy, IconSettings, IconLogout, IconUsers } from "./icons";
+import { canViewTatib, canViewEkskul, canManage } from "@/lib/roles";
 
-const menus = [
-  { href: "/dashboard", label: "Tatib",    icon: IconClipboard },
-  { href: "/presensi",  label: "Presensi", icon: IconCalendar  },
-  { href: "/prestasi",  label: "Prestasi", icon: IconTrophy    },
-];
+type Props = { name: string; sub: string; initials: string; role: string };
 
-type Props = { name: string; sub: string; initials: string };
-
-export function Sidebar({ name, sub, initials }: Props) {
+export function Sidebar({ name, sub, initials, role }: Props) {
   const path = usePathname();
   function active(href: string) { return path === href || path.startsWith(href + "/"); }
+
+  const showTatib   = canViewTatib(role);
+  const showEkskul  = canViewEkskul(role);
+  const showSettings = canManage(role);
 
   return (
     <aside className="sidebar">
@@ -33,15 +32,36 @@ export function Sidebar({ name, sub, initials }: Props) {
       {/* Nav */}
       <nav className="sidebar-nav">
         <div className="sidebar-group-label">Menu</div>
-        {menus.map(({ href, label, icon: Icon }) => (
-          <Link key={href} href={href} className={"sidebar-link" + (active(href) ? " sidebar-link--active" : "")}>
-            <Icon /><span>{label}</span>
+
+        {showTatib && (
+          <Link href="/dashboard" className={"sidebar-link" + (active("/dashboard") ? " sidebar-link--active" : "")}>
+            <IconClipboard /><span>Tatib</span>
           </Link>
-        ))}
-        <div className="sidebar-group-label">Lainnya</div>
-        <Link href="/pengaturan" className={"sidebar-link" + (active("/pengaturan") ? " sidebar-link--active" : "")}>
-          <IconSettings /><span>Pengaturan</span>
-        </Link>
+        )}
+        {showTatib && (
+          <Link href="/presensi" className={"sidebar-link" + (active("/presensi") ? " sidebar-link--active" : "")}>
+            <IconCalendar /><span>Presensi</span>
+          </Link>
+        )}
+        {showTatib && (
+          <Link href="/prestasi" className={"sidebar-link" + (active("/prestasi") ? " sidebar-link--active" : "")}>
+            <IconTrophy /><span>Prestasi</span>
+          </Link>
+        )}
+        {showEkskul && (
+          <Link href="/ekskul" className={"sidebar-link" + (active("/ekskul") ? " sidebar-link--active" : "")}>
+            <IconUsers /><span>Ekskul</span>
+          </Link>
+        )}
+
+        {showSettings && (
+          <>
+            <div className="sidebar-group-label">Lainnya</div>
+            <Link href="/pengaturan" className={"sidebar-link" + (active("/pengaturan") ? " sidebar-link--active" : "")}>
+              <IconSettings /><span>Pengaturan</span>
+            </Link>
+          </>
+        )}
       </nav>
 
       {/* User + logout */}

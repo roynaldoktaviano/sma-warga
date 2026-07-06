@@ -15,7 +15,16 @@ export default async function OrtuPage() {
 
   const siswa = await prisma.siswa.findUnique({
     where: { id: session.sub },
-    include: { catatan: { orderBy: [{ tanggal: "desc" }, { createdAt: "desc" }] } },
+    include: {
+      catatan: {
+        orderBy: [{ tanggal: "desc" }, { createdAt: "desc" }],
+        select: {
+          id: true, poin: true, kategori: true, keterangan: true,
+          tanggal: true, pencatatNama: true,
+          statusVerif: true, verifikasiWakaNama: true, verifikasiKepsekNama: true,
+        },
+      },
+    },
   });
   if (!siswa) redirect("/login");
 

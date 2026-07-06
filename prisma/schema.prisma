@@ -9,8 +9,11 @@ datasource db {
 }
 
 enum Role {
-  KESISWAAN
-  BKA
+  KESISWAAN    // Waka Kesiswaan — full access + verifikasi tatib
+  KEPSEK       // Kepala Sekolah — full access + verifikasi tatib
+  GURU         // Guru umum — input presensi + tatib
+  GURU_BK      // Guru BK — read + download rekap
+  GURU_EKSKUL  // Guru ekskul — presensi ekskul saja
 }
 
 enum Jenis {
@@ -19,6 +22,7 @@ enum Jenis {
 }
 
 enum StatusAbsen {
+  HADIR
   IZIN
   SAKIT
   ALPA
@@ -33,49 +37,103 @@ enum Tingkat {
 }
 
 model Sekolah {
+  id           String        @id @default(cuid())
+  nama         String
+  staff        Staff[]
+  siswa        Siswa[]
+  tahunAjaran  TahunAjaran[]
+  createdAt    DateTime      @default(now())
+}
+
+model TahunAjaran {
   id        String   @id @default(cuid())
-  nama      String
-  staff     Staff[]
-  siswa     Siswa[]
+  nama      String   // e.g. "2024/2025"
+  status    String   @default("PERSIAPAN") // PERSIAPAN | BERJALAN | SELESAI
+  sekolah   Sekolah  @relation(fields: [sekolahId], references: [id], onDelete: Cascade)
+  sekolahId String
+  ekskul    Ekskul[]
   createdAt DateTime @default(now())
+
+  @@unique([sekolahId, nama])
+  @@index([sekolahId])
+}
+
+model Ekskul {
+  id            String          @id @default(cuid())
+  nama          String
+  deskripsi     String?
+  tahunAjaran   TahunAjaran     @relation(fields: [tahunAjaranId], references: [id], onDelete: Cascade)
+  tahunAjaranId String
+  anggota       EkskulAnggota[]
+  guru          EkskulGuru[]
+  presensi      PresensiEkskul[]
+  createdAt     DateTime        @default(now())
+
+  @@index([tahunAjaranId])
+}
+
+model EkskulGuru {
+  id       String @id @default(cuid())
+  ekskul   Ekskul @relation(fields: [ekskulId], references: [id], onDelete: Cascade)
+  ekskulId String
+  staff    Staff  @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  staffId  String
+
+  @@unique([ekskulId, staffId])
+  @@index([staffId])
+}
+
+model EkskulAnggota {
+  id       String @id @default(cuid())
+  ekskul   Ekskul @relation(fields: [ekskulId], references: [id], onDelete: Cascade)
+  ekskulId String
+  siswa    Siswa  @relation(fields: [siswaId], references: [id], onDelete: Cascade)
+  siswaId  String
+
+  @@unique([ekskulId, siswaId])
+  @@index([siswaId])
 }
 
 model Staff {
-  id        String      @id @default(cuid())
-  nama      String
-  username  String      @unique
-  password  String
-  role      Role
-  sekolah   Sekolah     @relation(fields: [sekolahId], references: [id], onDelete: Cascade)
-  sekolahId String
-  catatan   Catatan[]
-  presensi  Presensi[]
-  prestasi  Prestasi[]
-  createdAt DateTime    @default(now())
+  id          String       @id @default(cuid())
+  nama        String
+  username    String       @unique
+  password    String
+  role        Role
+  sekolah     Sekolah      @relation(fields: [sekolahId], references: [id], onDelete: Cascade)
+  sekolahId   String
+  catatan         Catatan[]
+  presensi        Presensi[]
+  prestasi        Prestasi[]
+  ekskulGuru      EkskulGuru[]
+  presensiEkskul  PresensiEkskul[]
+  createdAt       DateTime     @default(now())
 
   @@index([sekolahId])
 }
 
 model Siswa {
-  id           String     @id @default(cuid())
-  nama         String
-  kelas        String
-  nis          String     @unique
-  nisn         String?    @unique
-  jenisKelamin String     @default("L")   // L atau P
-  agama        String     @default("")
-  asalSD       String?
-  statusDL     String?                    // D = Dalam kota, L = Luar kota
-  status       String     @default("AKTIF") // AKTIF | LULUS | PINDAH
-  username     String     @unique
-  password     String
-  poinAwal     Int        @default(100)
-  sekolah      Sekolah    @relation(fields: [sekolahId], references: [id], onDelete: Cascade)
-  sekolahId    String
-  catatan      Catatan[]
-  presensi     Presensi[]
-  prestasi     Prestasi[]
-  createdAt    DateTime   @default(now())
+  id             String          @id @default(cuid())
+  nama           String
+  kelas          String
+  nis            String          @unique
+  nisn           String?         @unique
+  jenisKelamin   String          @default("L")
+  agama          String          @default("")
+  asalSD         String?
+  statusDL       String?
+  status         String          @default("AKTIF") // AKTIF | LULUS | PINDAH
+  username       String          @unique
+  password       String
+  poinAwal       Int             @default(100)
+  sekolah        Sekolah         @relation(fields: [sekolahId], references: [id], onDelete: Cascade)
+  sekolahId      String
+  catatan        Catatan[]
+  presensi       Presensi[]
+  prestasi       Prestasi[]
+  ekskulAnggota  EkskulAnggota[]
+  presensiEkskul PresensiEkskul[]
+  createdAt      DateTime        @default(now())
 
   @@index([sekolahId])
   @@index([status])
@@ -93,10 +151,21 @@ model Catatan {
   pencatat     Staff?   @relation(fields: [pencatatId], references: [id], onDelete: SetNull)
   pencatatId   String?
   pencatatNama String
+
+  // Verifikasi — wajib disetujui Waka Kesiswaan DAN Kepsek
+  statusVerif        String    @default("PENDING") // PENDING | VERIFIED | REJECTED
+  verifikasiWaka     DateTime?
+  verifikasiWakaId   String?
+  verifikasiWakaNama String?
+  verifikasiKepsek     DateTime?
+  verifikasiKepsekId   String?
+  verifikasiKepsekNama String?
+
   createdAt    DateTime @default(now())
 
   @@index([siswaId])
   @@index([tanggal])
+  @@index([statusVerif])
 }
 
 model Presensi {
@@ -133,4 +202,23 @@ model Prestasi {
 
   @@index([siswaId])
   @@index([tanggal])
+}
+
+model PresensiEkskul {
+  id           String      @id @default(cuid())
+  ekskul       Ekskul      @relation(fields: [ekskulId], references: [id], onDelete: Cascade)
+  ekskulId     String
+  siswa        Siswa       @relation(fields: [siswaId], references: [id], onDelete: Cascade)
+  siswaId      String
+  tanggal      DateTime    @db.Date
+  status       StatusAbsen
+  keterangan   String?
+  pencatat     Staff?      @relation(fields: [pencatatId], references: [id], onDelete: SetNull)
+  pencatatId   String?
+  pencatatNama String
+  createdAt    DateTime    @default(now())
+
+  @@unique([ekskulId, siswaId, tanggal])
+  @@index([ekskulId])
+  @@index([siswaId])
 }

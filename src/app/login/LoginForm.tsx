@@ -7,7 +7,6 @@ import { IconWarn } from "@/components/icons";
 const demos = [
   { label: "Kesiswaan", user: "kesiswaan", pass: "kesiswaan123" },
   { label: "BKA", user: "bka", pass: "bka123" },
-  { label: "Siswa (contoh)", user: "24001", pass: "siswa123" },
 ];
 
 export function LoginForm() {
@@ -42,8 +41,8 @@ export function LoginForm() {
       ) : null}
 
       <div className="field">
-        <label htmlFor="lu">Username</label>
-        <input id="lu" type="text" autoComplete="username" placeholder="mis. kesiswaan" value={u} onChange={(e) => setU(e.target.value)} onKeyDown={onKey} />
+        <label htmlFor="lu">Username / NISN</label>
+        <input id="lu" type="text" autoComplete="username" placeholder="Username petugas atau NISN siswa" value={u} onChange={(e) => setU(e.target.value)} onKeyDown={onKey} />
       </div>
       <div className="field">
         <label htmlFor="lp">Kata sandi</label>
@@ -75,7 +74,7 @@ export function LoginForm() {
           </div>
         ))}
         <div className="field-hint" style={{ marginTop: 10 }}>
-          Siswa login dengan <b>NIS</b> sebagai username · sandi default <b>siswa123</b>.
+          Siswa login dengan <b>NISN</b> · kata sandi default = <b>NIS</b> siswa.
         </div>
       </div>
     </div>

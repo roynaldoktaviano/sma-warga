@@ -7,7 +7,8 @@ import { ModalShell } from "./ModalShell";
 import { toast } from "./Toaster";
 import { IconPlus } from "./icons";
 
-const empty = { nama: "", username: "", password: "", role: "KESISWAAN" as "KESISWAAN" | "BKA" };
+type StaffRole = "KESISWAAN" | "KEPSEK" | "GURU" | "GURU_BK" | "GURU_EKSKUL";
+const empty = { nama: "", username: "", password: "", role: "GURU" as StaffRole };
 
 export function AddStaffModalButton() {
   const [open, setOpen] = useState(false);
@@ -21,7 +22,7 @@ export function AddStaffModalButton() {
 
   function submit() {
     start(async () => {
-      const res = await addStaffAction({ ...form, role: form.role as "KESISWAAN" | "BKA" });
+      const res = await addStaffAction({ ...form, role: form.role as StaffRole });
       if (res.ok) {
         toast("Akun berhasil ditambahkan.");
         setOpen(false);
@@ -65,8 +66,11 @@ export function AddStaffModalButton() {
             <div className="field">
               <label>Role</label>
               <select value={form.role} onChange={e => set("role", e.target.value)}>
-                <option value="KESISWAAN">Kesiswaan</option>
-                <option value="BKA">BKA</option>
+                <option value="KESISWAAN">Waka Kesiswaan</option>
+                <option value="KEPSEK">Kepala Sekolah</option>
+                <option value="GURU">Guru</option>
+                <option value="GURU_BK">Guru BK</option>
+                <option value="GURU_EKSKUL">Guru Ekskul</option>
               </select>
             </div>
           </div>

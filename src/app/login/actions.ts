@@ -19,12 +19,14 @@ export async function loginAction(
     redirect("/dashboard");
   }
 
-  // 2) coba sebagai siswa
-  const siswa = await prisma.siswa.findUnique({ where: { username: u } });
+  // 2) coba sebagai siswa — cari by NISN dulu, fallback ke username/NIS
+  const siswa =
+    (await prisma.siswa.findUnique({ where: { nisn: u } })) ??
+    (await prisma.siswa.findUnique({ where: { username: u } }));
   if (siswa && (await bcrypt.compare(password, siswa.password))) {
     await createSession({ sub: siswa.id, kind: "siswa", name: siswa.nama });
     redirect("/ortu");
   }
 
-  return { error: "Username atau kata sandi salah. Coba lagi." };
+  return { error: "NISN/username atau kata sandi salah. Coba lagi." };
 }
