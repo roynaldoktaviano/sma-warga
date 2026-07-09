@@ -4,7 +4,7 @@ import bcrypt from "bcryptjs";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { destroySession, requireStaff } from "@/lib/auth";
+import { destroySession, requireStaff, canInput, canVerify, canManage } from "@/lib/auth";
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
 
@@ -18,6 +18,8 @@ export async function addRecordAction(input: {
   tanggal: string;
 }): Promise<ActionResult> {
   const session = await requireStaff();
+  if (!canInput(session.role))
+    return { ok: false, error: "Hanya Kesiswaan, Kepsek, atau Guru yang bisa mencatat kejadian." };
 
   const mag = Math.abs(Math.round(input.poin || 0));
   if (mag <= 0) return { ok: false, error: "Isi jumlah poin lebih dari 0." };
@@ -41,6 +43,7 @@ export async function addRecordAction(input: {
 
   revalidatePath("/dashboard");
   revalidatePath(`/siswa/${siswa.id}`);
+  revalidatePath("/catatan");
   revalidatePath("/ortu");
   return { ok: true };
 }
@@ -126,7 +129,9 @@ export type ImportResult = {
 };
 
 export async function importStudentsAction(rows: ImportRow[]): Promise<ImportResult[]> {
-  await requireStaff();
+  const session = await requireStaff();
+  if (!canVerify(session.role)) throw new Error("Hanya Waka Kesiswaan atau Kepsek yang bisa mengimpor siswa.");
+  if (rows.length > 500) throw new Error("Maksimal 500 baris per sekali import.");
 
   const sekolah = await prisma.sekolah.findFirst();
   if (!sekolah) throw new Error("Data sekolah belum ada. Jalankan seed terlebih dahulu.");
@@ -184,7 +189,9 @@ export async function importStudentsAction(rows: ImportRow[]): Promise<ImportRes
 
 // ---------- Hapus siswa ----------
 export async function deleteStudentAction(id: string): Promise<ActionResult> {
-  await requireStaff();
+  const session = await requireStaff();
+  if (session.role !== "KESISWAAN" && session.role !== "KEPSEK")
+    return { ok: false, error: "Hanya Kesiswaan atau Kepsek yang bisa menghapus siswa." };
   const siswa = await prisma.siswa.findUnique({ where: { id } });
   if (!siswa) return { ok: false, error: "Siswa tidak ditemukan." };
   await prisma.siswa.delete({ where: { id } });
@@ -194,14 +201,18 @@ export async function deleteStudentAction(id: string): Promise<ActionResult> {
 
 // ---------- Hapus catatan ----------
 export async function deleteRecordAction(recordId: string): Promise<ActionResult> {
-  await requireStaff();
+  const session = await requireStaff();
   const rec = await prisma.catatan.findUnique({ where: { id: recordId } });
   if (!rec) return { ok: false, error: "Catatan tidak ditemukan." };
+
+  if (rec.pencatatId !== session.sub && !canVerify(session.role))
+    return { ok: false, error: "Hanya pencatat atau verifikator yang bisa menghapus catatan ini." };
 
   await prisma.catatan.delete({ where: { id: recordId } });
 
   revalidatePath("/dashboard");
   revalidatePath(`/siswa/${rec.siswaId}`);
+  revalidatePath("/catatan");
   revalidatePath("/ortu");
   return { ok: true };
 }
@@ -231,6 +242,40 @@ export async function addPresensiAction(input: {
       pencatatId: session.sub, pencatatNama: session.name,
     },
   });
+
+  revalidatePath("/presensi");
+  return { ok: true };
+}
+
+// ---------- Presensi per kelas (bulk) ----------
+export async function addPresensiKelasAction(
+  tanggal: string,
+  entries: { siswaId: string; status: "HADIR" | "IZIN" | "SAKIT" | "ALPA" }[]
+): Promise<ActionResult> {
+  const session = await requireStaff();
+  if (!tanggal) return { ok: false, error: "Tanggal wajib diisi." };
+  const tgl = new Date(tanggal + "T00:00:00Z");
+
+  for (const en of entries) {
+    if (en.status === "HADIR") {
+      // HADIR = hapus record (siswa dianggap hadir jika tidak ada record)
+      await prisma.presensi.deleteMany({
+        where: { siswaId: en.siswaId, tanggal: tgl },
+      });
+    } else {
+      await prisma.presensi.upsert({
+        where: { siswaId_tanggal: { siswaId: en.siswaId, tanggal: tgl } },
+        create: {
+          siswaId: en.siswaId, tanggal: tgl, status: en.status as "IZIN" | "SAKIT" | "ALPA",
+          pencatatId: session.sub, pencatatNama: session.name,
+        },
+        update: {
+          status: en.status as "IZIN" | "SAKIT" | "ALPA",
+          pencatatId: session.sub, pencatatNama: session.name,
+        },
+      });
+    }
+  }
 
   revalidatePath("/presensi");
   return { ok: true };
@@ -322,7 +367,9 @@ export async function getKenaikanPreviewAction(): Promise<KenaikanPreview> {
 }
 
 export async function prosesKenaikanKelasAction(): Promise<ActionResult> {
-  await requireStaff();
+  const session = await requireStaff();
+  if (!canVerify(session.role))
+    return { ok: false, error: "Hanya Waka Kesiswaan atau Kepsek yang bisa memproses kenaikan kelas." };
   const siswa = await prisma.siswa.findMany({
     where: { status: "AKTIF" },
     select: { id: true, kelas: true },
@@ -345,7 +392,9 @@ export async function prosesKenaikanKelasAction(): Promise<ActionResult> {
 
 // ---------- Update status siswa (pindah, dll) ----------
 export async function updateSiswaStatusAction(id: string, status: "AKTIF" | "LULUS" | "PINDAH"): Promise<ActionResult> {
-  await requireStaff();
+  const session = await requireStaff();
+  if (!canVerify(session.role))
+    return { ok: false, error: "Hanya Waka Kesiswaan atau Kepsek yang bisa mengubah status siswa." };
   const siswa = await prisma.siswa.findUnique({ where: { id } });
   if (!siswa) return { ok: false, error: "Siswa tidak ditemukan." };
   await prisma.siswa.update({ where: { id }, data: { status } });
@@ -404,7 +453,9 @@ export async function verifikasiCatatanAction(
 
 // ---------- Reset password semua siswa ke NIS ----------
 export async function resetPasswordSiswaAction(): Promise<ActionResult & { count?: number }> {
-  await requireStaff();
+  const session = await requireStaff();
+  if (!canVerify(session.role))
+    return { ok: false, error: "Hanya Waka Kesiswaan atau Kepsek yang bisa mereset password siswa." };
   const semua = await prisma.siswa.findMany({ select: { id: true, nis: true } });
   await Promise.all(
     semua.map(async (s) => {
@@ -422,7 +473,9 @@ export async function addStaffAction(input: {
   password: string;
   role: "KESISWAAN" | "KEPSEK" | "GURU" | "GURU_BK" | "GURU_EKSKUL";
 }): Promise<ActionResult> {
-  await requireStaff();
+  const session = await requireStaff();
+  if (!canVerify(session.role))
+    return { ok: false, error: "Hanya Waka Kesiswaan atau Kepsek yang bisa menambah akun staff." };
 
   const nama     = input.nama?.trim();
   const username = input.username?.trim().toLowerCase();
@@ -449,6 +502,8 @@ export async function addStaffAction(input: {
 // ---------- Hapus akun staff ----------
 export async function deleteStaffAction(targetId: string): Promise<ActionResult> {
   const session = await requireStaff();
+  if (!canVerify(session.role))
+    return { ok: false, error: "Hanya Waka Kesiswaan atau Kepsek yang bisa menghapus akun staff." };
   if (targetId === session.sub) return { ok: false, error: "Tidak bisa menghapus akun sendiri." };
 
   const staff = await prisma.staff.findUnique({ where: { id: targetId } });
@@ -538,19 +593,26 @@ export async function addEkskulAction(input: {
   nama: string;
   deskripsi?: string;
   tahunAjaranId: string;
+  guruIds?: string[];
 }): Promise<ActionResult> {
   await requireStaff();
   if (!input.nama?.trim()) return { ok: false, error: "Nama ekskul wajib diisi." };
   const ta = await prisma.tahunAjaran.findUnique({ where: { id: input.tahunAjaranId } });
   if (!ta) return { ok: false, error: "Tahun ajaran tidak ditemukan." };
   if (ta.status !== "PERSIAPAN") return { ok: false, error: "Ekskul hanya bisa ditambah saat status PERSIAPAN." };
-  await prisma.ekskul.create({
+  const ekskul = await prisma.ekskul.create({
     data: {
       nama: input.nama.trim(),
       deskripsi: input.deskripsi?.trim() || null,
       tahunAjaranId: input.tahunAjaranId,
     },
   });
+  if (input.guruIds?.length) {
+    await prisma.ekskulGuru.createMany({
+      data: input.guruIds.map(staffId => ({ ekskulId: ekskul.id, staffId })),
+      skipDuplicates: true,
+    });
+  }
   revalidatePath("/ekskul");
   return { ok: true };
 }
@@ -639,6 +701,110 @@ export async function deletePresensiEkskulAction(id: string): Promise<ActionResu
   await prisma.presensiEkskul.delete({ where: { id } });
   revalidatePath("/ekskul");
   return { ok: true };
+}
+
+// ---------- Kategori Pelanggaran ----------
+export async function addKategoriPelanggaranAction(input: {
+  nama: string; tingkatan: string; poin: number;
+}): Promise<ActionResult> {
+  const session = await requireStaff();
+  if (!canManage(session.role))
+    return { ok: false, error: "Hanya Waka Kesiswaan yang bisa mengelola kategori pelanggaran." };
+  if (!input.nama?.trim()) return { ok: false, error: "Nama wajib diisi." };
+  if (input.poin <= 0) return { ok: false, error: "Poin harus lebih dari 0." };
+  const sekolah = await prisma.sekolah.findFirst();
+  if (!sekolah) return { ok: false, error: "Data sekolah tidak ditemukan." };
+  await prisma.kategoriPelanggaran.create({
+    data: { nama: input.nama.trim(), tingkatan: input.tingkatan, poin: Math.abs(Math.round(input.poin)), sekolahId: sekolah.id },
+  });
+  revalidatePath("/pelanggaran");
+  return { ok: true };
+}
+
+export async function deleteKategoriPelanggaranAction(id: string): Promise<ActionResult> {
+  const session = await requireStaff();
+  if (!canManage(session.role))
+    return { ok: false, error: "Hanya Waka Kesiswaan yang bisa mengelola kategori pelanggaran." };
+  await prisma.kategoriPelanggaran.delete({ where: { id } });
+  revalidatePath("/pelanggaran");
+  return { ok: true };
+}
+
+// ---------- Kategori Prestasi ----------
+export async function addKategoriPrestasiAction(input: {
+  nama: string; tingkatan: string; poin: number;
+}): Promise<ActionResult> {
+  const session = await requireStaff();
+  if (!canManage(session.role))
+    return { ok: false, error: "Hanya Waka Kesiswaan yang bisa mengelola kategori prestasi." };
+  if (!input.nama?.trim()) return { ok: false, error: "Nama wajib diisi." };
+  if (input.poin <= 0) return { ok: false, error: "Poin harus lebih dari 0." };
+  const sekolah = await prisma.sekolah.findFirst();
+  if (!sekolah) return { ok: false, error: "Data sekolah tidak ditemukan." };
+  await prisma.kategoriPrestasi.create({
+    data: { nama: input.nama.trim(), tingkatan: input.tingkatan, poin: Math.round(input.poin), sekolahId: sekolah.id },
+  });
+  revalidatePath("/kategori-prestasi");
+  return { ok: true };
+}
+
+export async function deleteKategoriPrestasiAction(id: string): Promise<ActionResult> {
+  const session = await requireStaff();
+  if (!canManage(session.role))
+    return { ok: false, error: "Hanya Waka Kesiswaan yang bisa mengelola kategori prestasi." };
+  await prisma.kategoriPrestasi.delete({ where: { id } });
+  revalidatePath("/kategori-prestasi");
+  return { ok: true };
+}
+
+// ---------- Import bulk kategori ----------
+type KatRow = { nama: string; tingkatan: string; poin: number };
+export type ImportKategoriResult = { ok: true; inserted: number; skipped: number } | { ok: false; error: string };
+
+export async function importKategoriPelanggaranAction(rows: KatRow[]): Promise<ImportKategoriResult> {
+  const session = await requireStaff();
+  if (!canManage(session.role))
+    return { ok: false, error: "Hanya Waka Kesiswaan yang bisa mengimpor kategori pelanggaran." };
+  if (rows.length > 200) return { ok: false, error: "Maksimal 200 baris per import." };
+  const VALID_TINGKAT = ["RINGAN", "SEDANG", "BERAT"];
+  const sekolah = await prisma.sekolah.findFirst();
+  if (!sekolah) return { ok: false, error: "Data sekolah tidak ditemukan." };
+  let inserted = 0, skipped = 0;
+  for (const r of rows) {
+    const nama = r.nama?.trim();
+    const tingkatan = r.tingkatan?.trim().toUpperCase();
+    const poin = Math.abs(Math.round(Number(r.poin)));
+    if (!nama || !VALID_TINGKAT.includes(tingkatan) || poin <= 0) { skipped++; continue; }
+    const exists = await prisma.kategoriPelanggaran.findFirst({ where: { sekolahId: sekolah.id, nama } });
+    if (exists) { skipped++; continue; }
+    await prisma.kategoriPelanggaran.create({ data: { nama, tingkatan, poin, sekolahId: sekolah.id } });
+    inserted++;
+  }
+  revalidatePath("/pelanggaran");
+  return { ok: true, inserted, skipped };
+}
+
+export async function importKategoriPrestasiAction(rows: KatRow[]): Promise<ImportKategoriResult> {
+  const session = await requireStaff();
+  if (!canManage(session.role))
+    return { ok: false, error: "Hanya Waka Kesiswaan yang bisa mengimpor kategori prestasi." };
+  if (rows.length > 200) return { ok: false, error: "Maksimal 200 baris per import." };
+  const VALID_TINGKAT = ["SEKOLAH", "KECAMATAN", "KOTA", "PROVINSI", "NASIONAL", "INTERNASIONAL"];
+  const sekolah = await prisma.sekolah.findFirst();
+  if (!sekolah) return { ok: false, error: "Data sekolah tidak ditemukan." };
+  let inserted = 0, skipped = 0;
+  for (const r of rows) {
+    const nama = r.nama?.trim();
+    const tingkatan = r.tingkatan?.trim().toUpperCase();
+    const poin = Math.abs(Math.round(Number(r.poin)));
+    if (!nama || !VALID_TINGKAT.includes(tingkatan) || poin <= 0) { skipped++; continue; }
+    const exists = await prisma.kategoriPrestasi.findFirst({ where: { sekolahId: sekolah.id, nama } });
+    if (exists) { skipped++; continue; }
+    await prisma.kategoriPrestasi.create({ data: { nama, tingkatan, poin, sekolahId: sekolah.id } });
+    inserted++;
+  }
+  revalidatePath("/kategori-prestasi");
+  return { ok: true, inserted, skipped };
 }
 
 // ---------- Logout ----------

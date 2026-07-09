@@ -13,6 +13,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   let name: string;
   let sub: string;
 
+  // GURU hanya tampilkan menu Ekskul kalau memang ditugaskan di suatu ekskul
+  const hasEkskul = isStaff && session.role === "GURU"
+    ? (await prisma.ekskulGuru.count({ where: { staffId: session.sub } })) > 0
+    : false;
+
   if (session.kind === "siswa") {
     const siswa = await prisma.siswa.findUnique({
       where: { id: session.sub },
@@ -30,7 +35,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   if (isStaff) {
     return (
       <div className="app-root">
-        <Sidebar name={name} sub={sub} initials={initials} role={session.role ?? ""} />
+        <Sidebar name={name} sub={sub} initials={initials} role={session.role ?? ""} hasEkskul={hasEkskul} />
         <main className="app-main">{children}</main>
       </div>
     );

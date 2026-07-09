@@ -1,4 +1,5 @@
 import { requireStaff } from "@/lib/auth";
+import { canManage } from "@/lib/roles";
 import { prisma } from "@/lib/prisma";
 import { AccountForm } from "@/components/AccountForm";
 import { AddStaffModalButton } from "@/components/AddStaffModalButton";

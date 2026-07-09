@@ -19,7 +19,17 @@ export async function loginAction(
     redirect("/dashboard");
   }
 
-  // 2) coba sebagai siswa — cari by NISN dulu, fallback ke username/NIS
+  // 2) coba sebagai orang tua — username ortu-{nisn}
+  if (u.startsWith("ortu-")) {
+    const nisn = u.slice(5);
+    const siswa = await prisma.siswa.findUnique({ where: { nisn } });
+    if (siswa && (await bcrypt.compare(password, siswa.password))) {
+      await createSession({ sub: siswa.id, kind: "siswa", name: siswa.nama });
+      redirect("/ortu");
+    }
+  }
+
+  // 3) coba sebagai siswa — cari by NISN dulu, fallback ke username/NIS
   const siswa =
     (await prisma.siswa.findUnique({ where: { nisn: u } })) ??
     (await prisma.siswa.findUnique({ where: { username: u } }));

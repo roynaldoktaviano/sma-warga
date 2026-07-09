@@ -22,7 +22,8 @@ export default async function EkskulPage() {
 
   const isManager = canManage(session.role);
 
-  const tahunList = await prisma.tahunAjaran.findMany({
+  const [tahunList, allStaff] = await Promise.all([
+    prisma.tahunAjaran.findMany({
     orderBy: { createdAt: "desc" },
     include: {
       ekskul: {
@@ -33,7 +34,11 @@ export default async function EkskulPage() {
         orderBy: { nama: "asc" },
       },
     },
-  });
+  }),
+    isManager
+      ? prisma.staff.findMany({ orderBy: { nama: "asc" }, select: { id: true, nama: true, role: true } })
+      : Promise.resolve([]),
+  ]);
 
   return (
     <div className="shell">
@@ -65,7 +70,7 @@ export default async function EkskulPage() {
               </div>
               <div style={{ display: "flex", gap: 8 }}>
                 {isManager && ta.status === "PERSIAPAN" && (
-                  <AddEkskulButton tahunAjaranId={ta.id} />
+                  <AddEkskulButton tahunAjaranId={ta.id} allStaff={allStaff} />
                 )}
                 {isManager && (
                   <TahunAjaranStatusButton id={ta.id} status={ta.status as "PERSIAPAN" | "BERJALAN" | "SELESAI"} />

@@ -2,7 +2,13 @@
   "permissions": {
     "allow": [
       "Bash(node -e ' *)",
-      "Bash(mkdir -p /Users/user/Roy/sma-warga/src/app/\\\\\\(app\\\\\\)/ekskul/\\\\[id\\\\])"
+      "Bash(mkdir -p /Users/user/Roy/sma-warga/src/app/\\\\\\(app\\\\\\)/ekskul/\\\\[id\\\\])",
+      "Bash(npx tsx *)",
+      "Bash(grep -v \"^$\")",
+      "Bash(DATABASE_URL=\"postgresql://neondb_owner:npg_4bzWcrQOLj5J@ep-damp-pine-ao1y1f4i.c-2.ap-southeast-1.aws.neon.tech/smawarga?sslmode=require\" npx tsx prisma/seed.ts)",
+      "Bash(npx next *)",
+      "Skill(artifact-design)",
+      "Skill(artifact-design:*)"
     ],
     "additionalDirectories": [
       "/Users/user/Roy/sma-warga/src/app/(app)/ekskul"

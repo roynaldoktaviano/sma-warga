@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { addEkskulAnggotaAction } from "@/app/actions";
 import { toast } from "./Toaster";
+import { ModalShell } from "./ModalShell";
 import { IconPlus } from "./icons";
 
 type SiswaItem = { id: string; nama: string; nis: string; kelas: string };
@@ -58,56 +59,57 @@ export function ManageEkskulAnggotaButton({
       </button>
 
       {open && (
-        <div className="modal-mask" onClick={() => setOpen(false)}>
-          <div className="modal modal--wide" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-head">
-              <span className="modal-title">Tambah Anggota</span>
-              <button className="modal-close" onClick={() => setOpen(false)}>✕</button>
-            </div>
-            <div className="modal-body">
-              <input
-                className="input"
-                placeholder="Cari nama / NIS / kelas…"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                autoFocus
-              />
-              <div style={{ marginTop: 8, maxHeight: 320, overflowY: "auto", border: "1px solid var(--line-soft)", borderRadius: 8 }}>
-                {filtered.length === 0 ? (
-                  <div style={{ padding: "12px 16px", fontSize: 13, color: "var(--ink-faint)" }}>Tidak ada siswa.</div>
-                ) : (
-                  filtered.map(s => (
-                    <label key={s.id} style={{
-                      display: "flex", alignItems: "center", gap: 10, padding: "8px 14px",
-                      cursor: "pointer", borderBottom: "1px solid var(--line-soft)",
-                    }}>
-                      <input
-                        type="checkbox"
-                        checked={selected.has(s.id)}
-                        onChange={() => toggle(s.id)}
-                      />
-                      <div>
-                        <div style={{ fontSize: 13, fontWeight: 500 }}>{s.nama}</div>
-                        <div style={{ fontSize: 11.5, color: "var(--ink-faint)" }}>{s.kelas} · {s.nis}</div>
-                      </div>
-                    </label>
-                  ))
-                )}
-              </div>
-              {selected.size > 0 && (
-                <div style={{ marginTop: 6, fontSize: 12, color: "var(--ink-soft)" }}>
-                  {selected.size} siswa dipilih
-                </div>
-              )}
-            </div>
-            <div className="modal-foot">
+        <ModalShell
+          title="Tambah Anggota"
+          onClose={() => setOpen(false)}
+          wide
+          footer={
+            <>
               <button className="btn btn-ghost" onClick={() => setOpen(false)}>Batal</button>
               <button className="btn btn-accent" disabled={pending || selected.size === 0} onClick={submit}>
-                {pending ? "Menyimpan…" : `Tambah (${selected.size})`}
+                {pending ? "Menyimpan…" : `Tambah${selected.size > 0 ? ` (${selected.size})` : ""}`}
               </button>
-            </div>
+            </>
+          }
+        >
+          <input
+            className="input"
+            placeholder="Cari nama / NIS / kelas…"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            autoFocus
+          />
+          <div style={{ marginTop: 10, maxHeight: 320, overflowY: "auto", border: "1px solid var(--line-soft)", borderRadius: 8 }}>
+            {filtered.length === 0 ? (
+              <div style={{ padding: "14px 16px", fontSize: 13, color: "var(--ink-faint)" }}>Tidak ada siswa.</div>
+            ) : (
+              filtered.map(s => (
+                <label key={s.id} style={{
+                  display: "flex", alignItems: "center", gap: 12, padding: "10px 14px",
+                  cursor: "pointer", borderBottom: "1px solid var(--line-soft)",
+                  background: selected.has(s.id) ? "var(--accent-soft)" : "transparent",
+                  transition: "background .1s",
+                }}>
+                  <input
+                    type="checkbox"
+                    checked={selected.has(s.id)}
+                    onChange={() => toggle(s.id)}
+                    style={{ accentColor: "var(--accent)", width: 15, height: 15, flexShrink: 0 }}
+                  />
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 500 }}>{s.nama}</div>
+                    <div style={{ fontSize: 11.5, color: "var(--ink-faint)" }}>{s.kelas} · {s.nis}</div>
+                  </div>
+                </label>
+              ))
+            )}
           </div>
-        </div>
+          {selected.size > 0 && (
+            <p style={{ margin: "8px 0 0", fontSize: 12, color: "var(--ink-soft)" }}>
+              {selected.size} siswa dipilih
+            </p>
+          )}
+        </ModalShell>
       )}
     </>
   );

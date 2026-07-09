@@ -37,12 +37,38 @@ enum Tingkat {
 }
 
 model Sekolah {
-  id           String        @id @default(cuid())
-  nama         String
-  staff        Staff[]
-  siswa        Siswa[]
-  tahunAjaran  TahunAjaran[]
-  createdAt    DateTime      @default(now())
+  id                   String                @id @default(cuid())
+  nama                 String
+  staff                Staff[]
+  siswa                Siswa[]
+  tahunAjaran          TahunAjaran[]
+  kategoriPelanggaran  KategoriPelanggaran[]
+  kategoriPrestasi     KategoriPrestasi[]
+  createdAt            DateTime              @default(now())
+}
+
+model KategoriPelanggaran {
+  id        String   @id @default(cuid())
+  nama      String
+  tingkatan String   // RINGAN | SEDANG | BERAT
+  poin      Int      // magnitudo, selalu positif; disimpan negatif di Catatan
+  sekolah   Sekolah  @relation(fields: [sekolahId], references: [id], onDelete: Cascade)
+  sekolahId String
+  createdAt DateTime @default(now())
+
+  @@index([sekolahId])
+}
+
+model KategoriPrestasi {
+  id        String   @id @default(cuid())
+  nama      String
+  tingkatan String   // SEKOLAH | KECAMATAN | KOTA | PROVINSI | NASIONAL
+  poin      Int
+  sekolah   Sekolah  @relation(fields: [sekolahId], references: [id], onDelete: Cascade)
+  sekolahId String
+  createdAt DateTime @default(now())
+
+  @@index([sekolahId])
 }
 
 model TahunAjaran {

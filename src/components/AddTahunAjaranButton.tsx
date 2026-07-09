@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { addTahunAjaranAction } from "@/app/actions";
 import { toast } from "./Toaster";
+import { ModalShell } from "./ModalShell";
 import { IconPlus } from "./icons";
 
 export function AddTahunAjaranButton() {
@@ -34,35 +35,32 @@ export function AddTahunAjaranButton() {
       </button>
 
       {open && (
-        <div className="modal-mask" onClick={() => setOpen(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-head">
-              <span className="modal-title">Tambah Tahun Ajaran</span>
-              <button className="modal-close" onClick={() => setOpen(false)}>✕</button>
+        <ModalShell
+          title="Tambah Tahun Ajaran"
+          onClose={() => setOpen(false)}
+          footer={
+            <>
+              <button type="button" className="btn btn-ghost" onClick={() => setOpen(false)}>Batal</button>
+              <button form="form-ta" type="submit" className="btn btn-accent" disabled={pending}>
+                {pending ? "Menyimpan…" : "Simpan"}
+              </button>
+            </>
+          }
+        >
+          <form id="form-ta" onSubmit={submit}>
+            <div className="field">
+              <label className="field-label">Nama Tahun Ajaran</label>
+              <input
+                className="input"
+                placeholder="Contoh: 2024/2025"
+                value={nama}
+                onChange={(e) => setNama(e.target.value)}
+                required
+                autoFocus
+              />
             </div>
-            <form onSubmit={submit}>
-              <div className="modal-body">
-                <div className="field">
-                  <label className="field-label">Nama Tahun Ajaran</label>
-                  <input
-                    className="input"
-                    placeholder="Contoh: 2024/2025"
-                    value={nama}
-                    onChange={(e) => setNama(e.target.value)}
-                    required
-                    autoFocus
-                  />
-                </div>
-              </div>
-              <div className="modal-foot">
-                <button type="button" className="btn btn-ghost" onClick={() => setOpen(false)}>Batal</button>
-                <button type="submit" className="btn btn-accent" disabled={pending}>
-                  {pending ? "Menyimpan…" : "Simpan"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+          </form>
+        </ModalShell>
       )}
     </>
   );

@@ -157,3 +157,22 @@ export const IconClipboard = (p: P) => (
     <rect x="8" y="2" width="8" height="4" rx="1" />
   </svg>
 );
+
+export const IconBook = (p: P) => (
+  <svg {...base(p)} strokeWidth={1.8}>
+    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+  </svg>
+);
+
+export const IconStar = (p: P) => (
+  <svg {...base(p)} strokeWidth={1.8}>
+    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+  </svg>
+);
+
+export const IconChevron = (p: P) => (
+  <svg {...base(p)} strokeWidth={2.2}>
+    <path d="M6 9l6 6 6-6" />
+  </svg>
+);

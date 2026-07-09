@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { addEkskulGuruAction, removeEkskulGuruAction } from "@/app/actions";
 import { toast } from "./Toaster";
+import { ModalShell } from "./ModalShell";
 import { IconSettings } from "./icons";
 
 type StaffItem = { id: string; nama: string; role: string };
@@ -48,60 +49,49 @@ export function ManageEkskulGuruButton({
       </button>
 
       {open && (
-        <div className="modal-mask" onClick={() => setOpen(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-head">
-              <span className="modal-title">Atur Guru Pembina</span>
-              <button className="modal-close" onClick={() => setOpen(false)}>✕</button>
-            </div>
-            <div className="modal-body">
-              {currentGuru.length > 0 && (
-                <div style={{ marginBottom: 12 }}>
-                  <div className="field-label" style={{ marginBottom: 6 }}>Pembina saat ini</div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                    {currentGuru.map(g => (
-                      <div key={g.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                        <span style={{ fontSize: 13 }}>{g.nama}</span>
-                        <button
-                          className="btn btn-sm btn-danger"
-                          onClick={() => removeGuru(g.id)}
-                          disabled={pending}
-                        >
-                          Hapus
-                        </button>
-                      </div>
-                    ))}
+        <ModalShell
+          title="Atur Guru Pembina"
+          onClose={() => setOpen(false)}
+          footer={
+            <button className="btn btn-ghost" onClick={() => setOpen(false)}>Tutup</button>
+          }
+        >
+          {currentGuru.length > 0 && (
+            <div style={{ marginBottom: 16 }}>
+              <div className="field-label" style={{ marginBottom: 8 }}>Pembina saat ini</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {currentGuru.map(g => (
+                  <div key={g.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 12px", background: "var(--surface-2)", borderRadius: 8, border: "1px solid var(--line-soft)" }}>
+                    <span style={{ fontSize: 13, fontWeight: 500 }}>{g.nama}</span>
+                    <button className="btn btn-sm btn-danger" onClick={() => removeGuru(g.id)} disabled={pending}>
+                      Hapus
+                    </button>
                   </div>
-                </div>
-              )}
-              {available.length > 0 && (
-                <div>
-                  <div className="field-label" style={{ marginBottom: 6 }}>Tambah guru</div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                    {available.map(s => (
-                      <div key={s.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                        <span style={{ fontSize: 13 }}>{s.nama}</span>
-                        <button
-                          className="btn btn-sm"
-                          onClick={() => addGuru(s.id)}
-                          disabled={pending}
-                        >
-                          + Tambah
-                        </button>
-                      </div>
-                    ))}
+                ))}
+              </div>
+            </div>
+          )}
+
+          {available.length > 0 && (
+            <div>
+              <div className="field-label" style={{ marginBottom: 8 }}>Tambah guru</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {available.map(s => (
+                  <div key={s.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 12px", background: "var(--surface-2)", borderRadius: 8, border: "1px solid var(--line-soft)" }}>
+                    <span style={{ fontSize: 13 }}>{s.nama}</span>
+                    <button className="btn btn-sm" onClick={() => addGuru(s.id)} disabled={pending}>
+                      + Tambah
+                    </button>
                   </div>
-                </div>
-              )}
-              {available.length === 0 && currentGuru.length === 0 && (
-                <div style={{ fontSize: 13, color: "var(--ink-faint)" }}>Tidak ada staf tersedia.</div>
-              )}
+                ))}
+              </div>
             </div>
-            <div className="modal-foot">
-              <button className="btn btn-ghost" onClick={() => setOpen(false)}>Tutup</button>
-            </div>
-          </div>
-        </div>
+          )}
+
+          {available.length === 0 && currentGuru.length === 0 && (
+            <p style={{ fontSize: 13, color: "var(--ink-faint)", margin: 0 }}>Tidak ada staf tersedia.</p>
+          )}
+        </ModalShell>
       )}
     </>
   );

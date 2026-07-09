@@ -1,20 +1,34 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { logoutAction } from "@/app/actions";
-import { IconClipboard, IconCalendar, IconTrophy, IconSettings, IconLogout, IconUsers } from "./icons";
+import {
+  IconClipboard, IconCalendar, IconSettings, IconLogout,
+  IconUsers, IconBook, IconStar, IconDown, IconTrophy,
+  IconGauge, IconChevron,
+} from "./icons";
 import { canViewTatib, canViewEkskul, canManage } from "@/lib/roles";
 
-type Props = { name: string; sub: string; initials: string; role: string };
+type Props = { name: string; sub: string; initials: string; role: string; hasEkskul?: boolean };
 
-export function Sidebar({ name, sub, initials, role }: Props) {
+const TATIB_PATHS = ["/dashboard", "/catatan", "/prestasi"];
+
+export function Sidebar({ name, sub, initials, role, hasEkskul = false }: Props) {
   const path = usePathname();
   function active(href: string) { return path === href || path.startsWith(href + "/"); }
 
-  const showTatib   = canViewTatib(role);
-  const showEkskul  = canViewEkskul(role);
+  const showTatib    = canViewTatib(role);
+  const showEkskul   = canViewEkskul(role) || hasEkskul;
   const showSettings = canManage(role);
+
+  const tatibActive = TATIB_PATHS.some(p => path === p || path.startsWith(p + "/"));
+  const [tatibOpen, setTatibOpen] = useState(tatibActive);
+
+  useEffect(() => {
+    if (tatibActive) setTatibOpen(true);
+  }, [tatibActive]);
 
   return (
     <aside className="sidebar">
@@ -34,29 +48,60 @@ export function Sidebar({ name, sub, initials, role }: Props) {
         <div className="sidebar-group-label">Menu</div>
 
         {showTatib && (
-          <Link href="/dashboard" className={"sidebar-link" + (active("/dashboard") ? " sidebar-link--active" : "")}>
-            <IconClipboard /><span>Tatib</span>
+          <Link href="/siswa" className={"sidebar-link" + (active("/siswa") ? " sidebar-link--active" : "")}>
+            <IconUsers /><span>Siswa</span>
           </Link>
         )}
+
+        {showTatib && (
+          <>
+            <button
+              type="button"
+              aria-expanded={tatibOpen}
+              onClick={() => setTatibOpen(o => !o)}
+              className={"sidebar-group-trigger" + (tatibActive ? " sidebar-group-trigger--active" : "")}
+            >
+              <IconClipboard />
+              <span>Tatib</span>
+              <IconChevron className="sidebar-group-chevron" />
+            </button>
+            {tatibOpen && (
+              <div className="sidebar-sub">
+                <Link href="/dashboard" className={"sidebar-sub-link" + (active("/dashboard") ? " sidebar-sub-link--active" : "")}>
+                  <IconGauge /><span>Dashboard</span>
+                </Link>
+                <Link href="/catatan" className={"sidebar-sub-link" + (active("/catatan") ? " sidebar-sub-link--active" : "")}>
+                  <IconDown /><span>Pelanggaran</span>
+                </Link>
+                <Link href="/prestasi" className={"sidebar-sub-link" + (active("/prestasi") ? " sidebar-sub-link--active" : "")}>
+                  <IconTrophy /><span>Prestasi</span>
+                </Link>
+              </div>
+            )}
+          </>
+        )}
+
         {showTatib && (
           <Link href="/presensi" className={"sidebar-link" + (active("/presensi") ? " sidebar-link--active" : "")}>
             <IconCalendar /><span>Presensi</span>
           </Link>
         )}
-        {showTatib && (
-          <Link href="/prestasi" className={"sidebar-link" + (active("/prestasi") ? " sidebar-link--active" : "")}>
-            <IconTrophy /><span>Prestasi</span>
-          </Link>
-        )}
         {showEkskul && (
           <Link href="/ekskul" className={"sidebar-link" + (active("/ekskul") ? " sidebar-link--active" : "")}>
-            <IconUsers /><span>Ekskul</span>
+            <IconStar /><span>Ekskul</span>
           </Link>
         )}
 
         {showSettings && (
           <>
-            <div className="sidebar-group-label">Lainnya</div>
+            <div className="sidebar-group-label">Master Data</div>
+            <Link href="/pelanggaran" className={"sidebar-link" + (active("/pelanggaran") ? " sidebar-link--active" : "")}>
+              <IconDown /><span>Pelanggaran</span>
+            </Link>
+            <Link href="/kategori-prestasi" className={"sidebar-link" + (active("/kategori-prestasi") ? " sidebar-link--active" : "")}>
+              <IconBook /><span>Prestasi</span>
+            </Link>
+            <div className="sidebar-group-label">Sistem</div>
             <Link href="/pengaturan" className={"sidebar-link" + (active("/pengaturan") ? " sidebar-link--active" : "")}>
               <IconSettings /><span>Pengaturan</span>
             </Link>

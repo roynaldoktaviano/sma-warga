@@ -176,6 +176,7 @@ export default async function EkskulDetailPage({ params }: { params: { id: strin
               <PresensiEkskulButton
                 ekskulId={ekskul.id}
                 anggota={ekskul.anggota.map(a => ({ id: a.siswaId, nama: a.siswa.nama, kelas: a.siswa.kelas }))}
+                isGuruEkskul={isGuruEkskul}
               />
             )}
           </div>

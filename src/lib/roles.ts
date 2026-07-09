@@ -11,9 +11,10 @@ export const ROLE_LABEL: Record<StaffRole, string> = {
   GURU_EKSKUL: "Guru Ekskul",
 };
 
-export const canVerify    = (r?: string) => r === "KESISWAAN" || r === "KEPSEK";
-export const canInput     = (r?: string) => r === "KESISWAAN" || r === "KEPSEK" || r === "GURU";
-export const canViewTatib = (r?: string) => r !== "GURU_EKSKUL";
-export const canViewEkskul= (r?: string) => r === "KESISWAAN" || r === "KEPSEK" || r === "GURU_EKSKUL";
-export const canManage    = (r?: string) => r === "KESISWAAN";
-export const canDownload  = (r?: string) => r === "KESISWAAN" || r === "KEPSEK" || r === "GURU_BK";
+export const canVerify        = (r?: string) => r === "KESISWAAN" || r === "KEPSEK";
+export const canInput         = (r?: string) => r === "KESISWAAN" || r === "KEPSEK" || r === "GURU";
+export const canViewTatib     = (r?: string) => r !== "GURU_EKSKUL";
+export const canViewEkskul    = (r?: string) => r === "KESISWAAN" || r === "KEPSEK" || r === "GURU_EKSKUL";
+export const canManage        = (r?: string) => r === "KESISWAAN";
+export const canDownload      = (r?: string) => r === "KESISWAAN" || r === "KEPSEK" || r === "GURU_BK";
+export const canDeleteStudent = (r?: string) => r === "KESISWAAN" || r === "KEPSEK";

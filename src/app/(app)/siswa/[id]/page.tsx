@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { requireStaff, canVerify as checkCanVerify, canInput } from "@/lib/auth";
+import { requireStaff, canVerify as checkCanVerify, canInput, canManage } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { currentPoints, studentStats, statusOf } from "@/lib/points";
 import { Avatar } from "@/components/Avatar";
@@ -34,6 +34,11 @@ export default async function SiswaPage({ params }: { params: { id: string } }) 
     },
   });
   if (!s) notFound();
+
+  const [kategoriPelanggaran, kategoriPrestasi] = await Promise.all([
+    prisma.kategoriPelanggaran.findMany({ where: { sekolahId: s.sekolahId }, orderBy: { nama: "asc" }, select: { id: true, nama: true, poin: true } }),
+    prisma.kategoriPrestasi.findMany({ where: { sekolahId: s.sekolahId }, orderBy: { nama: "asc" }, select: { id: true, nama: true, poin: true } }),
+  ]);
 
   const p = currentPoints(s.poinAwal, s.catatan);
   const st = statusOf(p);
@@ -82,12 +87,22 @@ export default async function SiswaPage({ params }: { params: { id: string } }) 
           </div>
 
           <div style={{ marginTop: 18, display: "flex", flexDirection: "column", gap: 8 }}>
-            <RecordModalButton students={[{ id: s.id, nama: s.nama, kelas: s.kelas }]} presetStudentId={s.id} block />
-            <div>
-              <div className="info-sub-label">Status Siswa</div>
-              <UpdateStatusButton id={s.id} current={s.status} />
-            </div>
-            <DeleteStudentButton id={s.id} nama={s.nama} />
+            {canInput(role) && (
+              <RecordModalButton
+                students={[{ id: s.id, nama: s.nama, kelas: s.kelas }]}
+                presetStudentId={s.id}
+                block
+                kategoriPelanggaran={kategoriPelanggaran}
+                kategoriPrestasi={kategoriPrestasi}
+              />
+            )}
+            {canManage(role) && (
+              <div>
+                <div className="info-sub-label">Status Siswa</div>
+                <UpdateStatusButton id={s.id} current={s.status} />
+              </div>
+            )}
+            {canManage(role) && <DeleteStudentButton id={s.id} nama={s.nama} />}
           </div>
         </div>
 

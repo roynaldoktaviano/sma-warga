@@ -16,7 +16,7 @@ import { canVerify, canInput, canManage } from "./roles";
 
 export type { Session } from "./session";
 export type { StaffRole } from "./roles";
-export { ROLE_LABEL, canVerify, canInput, canViewTatib, canViewEkskul, canManage, canDownload } from "./roles";
+export { ROLE_LABEL, canVerify, canInput, canViewTatib, canViewEkskul, canManage, canDownload, canDeleteStudent } from "./roles";
 
 export async function createSession(payload: Session): Promise<void> {
   const token = await signSession(payload);
