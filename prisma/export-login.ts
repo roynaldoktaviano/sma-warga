@@ -67,7 +67,7 @@ async function main() {
     "NIS":        s.nis,
     "Nama":       s.nama,
     "L/P":        s.jenisKelamin,
-    "Username":   s.nisn,
+    "Username":   s.nisn ?? "",
     "Password":   s.nis,   // password = NIS
     "URL Login":  "https://smawarga.sch.id/login",
   }));
@@ -78,7 +78,7 @@ async function main() {
     "Kelas":           s.kelas,
     "NIS Putra/Putri": s.nis,
     "Nama Siswa":      s.nama,
-    "Username":        `ortu-${s.nisn}`,
+    "Username":        `ortu-${s.nisn ?? ""}`,
     "Password (NIS)":  s.nis,
     "URL Login":       "https://smawarga.sch.id/login",
   }));
