@@ -16,7 +16,8 @@ export async function loginAction(
   const staff = await prisma.staff.findUnique({ where: { username: u } });
   if (staff && (await bcrypt.compare(password, staff.password))) {
     await createSession({ sub: staff.id, kind: "staff", role: staff.role, name: staff.nama });
-    redirect("/dashboard");
+    const isGuru = staff.role === "GURU" || staff.role === "GURU_BK";
+    redirect(isGuru ? "/presensi" : "/dashboard");
   }
 
   // 2) coba sebagai orang tua — username ortu-{nisn}
@@ -24,7 +25,7 @@ export async function loginAction(
     const nisn = u.slice(5);
     const siswa = await prisma.siswa.findUnique({ where: { nisn } });
     if (siswa && (await bcrypt.compare(password, siswa.password))) {
-      await createSession({ sub: siswa.id, kind: "siswa", name: siswa.nama });
+      await createSession({ sub: siswa.id, kind: "ortu", name: siswa.nama });
       redirect("/ortu");
     }
   }

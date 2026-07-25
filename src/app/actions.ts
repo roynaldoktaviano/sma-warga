@@ -62,7 +62,9 @@ export async function addStudentAction(input: {
   username?: string;
   password?: string;
 }): Promise<ActionResult> {
-  await requireStaff();
+  const session = await requireStaff();
+  if (!canVerify(session.role))
+    return { ok: false, error: "Hanya Waka Kesiswaan atau Kepsek yang bisa menambah siswa." };
 
   const nama = input.nama?.trim();
   const kelas = input.kelas?.trim();
@@ -225,6 +227,8 @@ export async function addPresensiAction(input: {
   keterangan?: string;
 }): Promise<ActionResult> {
   const session = await requireStaff();
+  if (!canInput(session.role))
+    return { ok: false, error: "Hanya Kesiswaan, Kepsek, atau Guru yang bisa mencatat presensi." };
   if (!input.siswaId || !input.tanggal) return { ok: false, error: "Data tidak lengkap." };
 
   const tanggal = new Date(input.tanggal + "T00:00:00Z");
@@ -253,6 +257,8 @@ export async function addPresensiKelasAction(
   entries: { siswaId: string; status: "HADIR" | "IZIN" | "SAKIT" | "ALPA" }[]
 ): Promise<ActionResult> {
   const session = await requireStaff();
+  if (!canInput(session.role))
+    return { ok: false, error: "Hanya Kesiswaan, Kepsek, atau Guru yang bisa mencatat presensi." };
   if (!tanggal) return { ok: false, error: "Tanggal wajib diisi." };
   const tgl = new Date(tanggal + "T00:00:00Z");
 
@@ -283,7 +289,11 @@ export async function addPresensiKelasAction(
 
 // ---------- Hapus presensi ----------
 export async function deletePresensiAction(id: string): Promise<ActionResult> {
-  await requireStaff();
+  const session = await requireStaff();
+  const rec = await prisma.presensi.findUnique({ where: { id } });
+  if (!rec) return { ok: false, error: "Data presensi tidak ditemukan." };
+  if (rec.pencatatId !== session.sub && !canVerify(session.role))
+    return { ok: false, error: "Hanya pencatat atau verifikator yang bisa menghapus presensi ini." };
   await prisma.presensi.delete({ where: { id } });
   revalidatePath("/presensi");
   return { ok: true };
@@ -300,6 +310,8 @@ export async function addPrestasiAction(input: {
   keterangan?: string;
 }): Promise<ActionResult> {
   const session = await requireStaff();
+  if (!canInput(session.role))
+    return { ok: false, error: "Hanya Kesiswaan, Kepsek, atau Guru yang bisa mencatat prestasi." };
   if (!input.siswaId || !input.judul || !input.kategori) return { ok: false, error: "Data tidak lengkap." };
 
   await prisma.prestasi.create({
@@ -322,7 +334,11 @@ export async function addPrestasiAction(input: {
 
 // ---------- Hapus prestasi ----------
 export async function deletePrestasiAction(id: string): Promise<ActionResult> {
-  await requireStaff();
+  const session = await requireStaff();
+  const rec = await prisma.prestasi.findUnique({ where: { id } });
+  if (!rec) return { ok: false, error: "Data prestasi tidak ditemukan." };
+  if (rec.pencatatId !== session.sub && !canVerify(session.role))
+    return { ok: false, error: "Hanya pencatat atau verifikator yang bisa menghapus prestasi ini." };
   await prisma.prestasi.delete({ where: { id } });
   revalidatePath("/prestasi");
   return { ok: true };
@@ -558,16 +574,106 @@ export async function updateAccountAction(input: {
   return { ok: true };
 }
 
-// ---------- TahunAjaran ----------
-export async function addTahunAjaranAction(nama: string): Promise<ActionResult> {
+// ---------- Mata Pelajaran ----------
+export async function addMapelAction(input: { nama: string; kode?: string; kelas: string[] }): Promise<ActionResult> {
   const session = await requireStaff();
+  if (!canManage(session.role))
+    return { ok: false, error: "Hanya Waka Kesiswaan yang bisa menambah mata pelajaran." };
+  const nama = input.nama?.trim();
+  if (!nama) return { ok: false, error: "Nama mata pelajaran wajib diisi." };
+  const kelas = (input.kelas ?? []).sort().join(",");
+  const sekolah = await prisma.sekolah.findFirst();
+  if (!sekolah) return { ok: false, error: "Data sekolah tidak ditemukan." };
+  const exists = await prisma.mataPelajaran.findUnique({
+    where: { sekolahId_nama_kelas: { sekolahId: sekolah.id, nama, kelas } },
+  });
+  if (exists) return { ok: false, error: `Mata pelajaran "${nama}"${kelas ? ` (Kelas ${kelas})` : ""} sudah ada.` };
+  await prisma.mataPelajaran.create({
+    data: { nama, kode: input.kode?.trim() || null, kelas, sekolahId: sekolah.id },
+  });
+  revalidatePath("/mapel");
+  return { ok: true };
+}
+
+export async function updateMapelAction(id: string, input: { nama: string; kode?: string; kelas: string[] }): Promise<ActionResult> {
+  const session = await requireStaff();
+  if (!canManage(session.role))
+    return { ok: false, error: "Hanya Waka Kesiswaan yang bisa mengubah mata pelajaran." };
+  const nama = input.nama?.trim();
+  if (!nama) return { ok: false, error: "Nama mata pelajaran wajib diisi." };
+  const kelas = (input.kelas ?? []).sort().join(",");
+  await prisma.mataPelajaran.update({
+    where: { id },
+    data: { nama, kode: input.kode?.trim() || null, kelas },
+  });
+  revalidatePath("/mapel");
+  revalidatePath("/guru");
+  return { ok: true };
+}
+
+export async function deleteMapelAction(id: string): Promise<ActionResult> {
+  const session = await requireStaff();
+  if (!canManage(session.role))
+    return { ok: false, error: "Hanya Waka Kesiswaan yang bisa menghapus mata pelajaran." };
+  await prisma.mataPelajaran.delete({ where: { id } });
+  revalidatePath("/mapel");
+  revalidatePath("/guru");
+  return { ok: true };
+}
+
+export async function setGuruMapelAction(staffId: string, mapelIds: string[]): Promise<ActionResult> {
+  const session = await requireStaff();
+  if (!canManage(session.role))
+    return { ok: false, error: "Hanya Waka Kesiswaan yang bisa mengatur mata pelajaran guru." };
+  await prisma.staffMapel.deleteMany({ where: { staffId } });
+  if (mapelIds.length > 0) {
+    await prisma.staffMapel.createMany({
+      data: mapelIds.map(mataPelajaranId => ({ staffId, mataPelajaranId })),
+      skipDuplicates: true,
+    });
+  }
+  revalidatePath("/guru");
+  revalidatePath("/mapel");
+  return { ok: true };
+}
+
+// ---------- Set aktif TahunAjaran ----------
+export async function setActiveTahunAjaranAction(id: string): Promise<ActionResult> {
+  const session = await requireStaff();
+  if (!canManage(session.role))
+    return { ok: false, error: "Hanya Waka Kesiswaan yang bisa mengatur tahun ajaran aktif." };
+  const ta = await prisma.tahunAjaran.findUnique({ where: { id } });
+  if (!ta) return { ok: false, error: "Tahun ajaran tidak ditemukan." };
+  const sekolah = await prisma.sekolah.findFirst();
+  if (!sekolah) return { ok: false, error: "Data sekolah tidak ditemukan." };
+  // Nonaktifkan semua, lalu aktifkan yang dipilih
+  await prisma.tahunAjaran.updateMany({ where: { sekolahId: sekolah.id }, data: { isActive: false } });
+  await prisma.tahunAjaran.update({ where: { id }, data: { isActive: true } });
+  revalidatePath("/tahun-ajaran");
+  revalidatePath("/kelas");
+  revalidatePath("/ekskul");
+  return { ok: true };
+}
+
+// ---------- TahunAjaran ----------
+export async function addTahunAjaranAction(nama: string, semester: "GANJIL" | "GENAP"): Promise<ActionResult> {
+  const session = await requireStaff();
+  if (!canManage(session.role))
+    return { ok: false, error: "Hanya Waka Kesiswaan yang bisa menambah tahun ajaran." };
   if (!nama?.trim()) return { ok: false, error: "Nama tahun ajaran wajib diisi." };
+  if (semester !== "GANJIL" && semester !== "GENAP") return { ok: false, error: "Semester tidak valid." };
 
   const sekolah = await prisma.sekolah.findFirst();
   if (!sekolah) return { ok: false, error: "Data sekolah tidak ditemukan." };
 
-  await prisma.tahunAjaran.create({ data: { nama: nama.trim(), sekolahId: sekolah.id } });
+  const exists = await prisma.tahunAjaran.findUnique({
+    where: { sekolahId_nama_semester: { sekolahId: sekolah.id, nama: nama.trim(), semester } },
+  });
+  if (exists) return { ok: false, error: `Tahun ajaran ${nama.trim()} ${semester === "GANJIL" ? "Ganjil" : "Genap"} sudah ada.` };
+
+  await prisma.tahunAjaran.create({ data: { nama: nama.trim(), semester, sekolahId: sekolah.id } });
   revalidatePath("/ekskul");
+  revalidatePath("/tahun-ajaran");
   return { ok: true };
 }
 
@@ -575,16 +681,101 @@ export async function updateTahunAjaranStatusAction(
   id: string,
   status: "PERSIAPAN" | "BERJALAN" | "SELESAI"
 ): Promise<ActionResult> {
-  await requireStaff();
+  const session = await requireStaff();
+  if (!canManage(session.role))
+    return { ok: false, error: "Hanya Waka Kesiswaan yang bisa mengubah status tahun ajaran." };
   await prisma.tahunAjaran.update({ where: { id }, data: { status } });
   revalidatePath("/ekskul");
   return { ok: true };
 }
 
 export async function deleteTahunAjaranAction(id: string): Promise<ActionResult> {
-  await requireStaff();
+  const session = await requireStaff();
+  if (!canManage(session.role))
+    return { ok: false, error: "Hanya Waka Kesiswaan yang bisa menghapus tahun ajaran." };
   await prisma.tahunAjaran.delete({ where: { id } });
   revalidatePath("/ekskul");
+  return { ok: true };
+}
+
+// ---------- Kelas ----------
+export async function addKelasAction(input: {
+  nama: string;
+  tahunAjaranId: string;
+  waliKelasId?: string;
+}): Promise<ActionResult> {
+  const session = await requireStaff();
+  if (!canManage(session.role))
+    return { ok: false, error: "Hanya Waka Kesiswaan yang bisa menambah kelas." };
+  const nama = input.nama?.trim();
+  if (!nama) return { ok: false, error: "Nama kelas wajib diisi." };
+  const ta = await prisma.tahunAjaran.findUnique({ where: { id: input.tahunAjaranId } });
+  if (!ta) return { ok: false, error: "Tahun ajaran tidak ditemukan." };
+  if (ta.isActive) return { ok: false, error: "Kelas tidak bisa ditambah saat tahun ajaran sedang aktif." };
+  const exists = await prisma.kelas.findUnique({
+    where: { tahunAjaranId_nama: { tahunAjaranId: input.tahunAjaranId, nama } },
+  });
+  if (exists) return { ok: false, error: `Kelas "${nama}" sudah ada di tahun ajaran ini.` };
+  await prisma.kelas.create({
+    data: {
+      nama,
+      tahunAjaranId: input.tahunAjaranId,
+      waliKelasId: input.waliKelasId || null,
+      sekolahId: ta.sekolahId,
+    },
+  });
+  revalidatePath("/kelas");
+  return { ok: true };
+}
+
+export async function deleteKelasAction(id: string): Promise<ActionResult> {
+  const session = await requireStaff();
+  if (!canManage(session.role))
+    return { ok: false, error: "Hanya Waka Kesiswaan yang bisa menghapus kelas." };
+  const kelas = await prisma.kelas.findUnique({ where: { id }, include: { tahunAjaran: true } });
+  if (!kelas) return { ok: false, error: "Kelas tidak ditemukan." };
+  if (kelas.tahunAjaran.isActive) return { ok: false, error: "Kelas tidak bisa dihapus saat tahun ajaran sedang aktif." };
+  await prisma.kelas.delete({ where: { id } });
+  revalidatePath("/kelas");
+  return { ok: true };
+}
+
+export async function setWaliKelasAction(kelasId: string, waliKelasId: string | null): Promise<ActionResult> {
+  const session = await requireStaff();
+  if (!canManage(session.role))
+    return { ok: false, error: "Hanya Waka Kesiswaan yang bisa mengubah wali kelas." };
+  const kelas = await prisma.kelas.findUnique({ where: { id: kelasId }, include: { tahunAjaran: true } });
+  if (!kelas) return { ok: false, error: "Kelas tidak ditemukan." };
+  if (kelas.tahunAjaran.isActive) return { ok: false, error: "Wali kelas tidak bisa diubah saat tahun ajaran sedang aktif." };
+  await prisma.kelas.update({ where: { id: kelasId }, data: { waliKelasId } });
+  revalidatePath("/kelas");
+  return { ok: true };
+}
+
+export async function addKelasAnggotaAction(kelasId: string, siswaIds: string[]): Promise<ActionResult> {
+  const session = await requireStaff();
+  if (!canManage(session.role))
+    return { ok: false, error: "Hanya Waka Kesiswaan yang bisa mengelola anggota kelas." };
+  const kelas = await prisma.kelas.findUnique({ where: { id: kelasId }, include: { tahunAjaran: true } });
+  if (!kelas) return { ok: false, error: "Kelas tidak ditemukan." };
+  if (kelas.tahunAjaran.isActive) return { ok: false, error: "Anggota kelas tidak bisa diubah saat tahun ajaran sedang aktif." };
+  await prisma.kelasAnggota.createMany({
+    data: siswaIds.map(siswaId => ({ kelasId, siswaId })),
+    skipDuplicates: true,
+  });
+  revalidatePath("/kelas");
+  return { ok: true };
+}
+
+export async function removeKelasAnggotaAction(kelasId: string, siswaId: string): Promise<ActionResult> {
+  const session = await requireStaff();
+  if (!canManage(session.role))
+    return { ok: false, error: "Hanya Waka Kesiswaan yang bisa mengelola anggota kelas." };
+  const kelas = await prisma.kelas.findUnique({ where: { id: kelasId }, include: { tahunAjaran: true } });
+  if (!kelas) return { ok: false, error: "Kelas tidak ditemukan." };
+  if (kelas.tahunAjaran.isActive) return { ok: false, error: "Anggota kelas tidak bisa diubah saat tahun ajaran sedang aktif." };
+  await prisma.kelasAnggota.delete({ where: { kelasId_siswaId: { kelasId, siswaId } } });
+  revalidatePath("/kelas");
   return { ok: true };
 }
 
@@ -595,7 +786,9 @@ export async function addEkskulAction(input: {
   tahunAjaranId: string;
   guruIds?: string[];
 }): Promise<ActionResult> {
-  await requireStaff();
+  const session = await requireStaff();
+  if (!canManage(session.role))
+    return { ok: false, error: "Hanya Waka Kesiswaan yang bisa menambah ekskul." };
   if (!input.nama?.trim()) return { ok: false, error: "Nama ekskul wajib diisi." };
   const ta = await prisma.tahunAjaran.findUnique({ where: { id: input.tahunAjaranId } });
   if (!ta) return { ok: false, error: "Tahun ajaran tidak ditemukan." };
@@ -618,7 +811,9 @@ export async function addEkskulAction(input: {
 }
 
 export async function deleteEkskulAction(id: string): Promise<ActionResult> {
-  await requireStaff();
+  const session = await requireStaff();
+  if (!canManage(session.role))
+    return { ok: false, error: "Hanya Waka Kesiswaan yang bisa menghapus ekskul." };
   const e = await prisma.ekskul.findUnique({ where: { id }, include: { tahunAjaran: true } });
   if (!e) return { ok: false, error: "Ekskul tidak ditemukan." };
   if (e.tahunAjaran.status !== "PERSIAPAN") return { ok: false, error: "Ekskul tidak bisa dihapus setelah tahun ajaran dimulai." };
@@ -629,7 +824,9 @@ export async function deleteEkskulAction(id: string): Promise<ActionResult> {
 
 // ---------- Ekskul Guru ----------
 export async function addEkskulGuruAction(ekskulId: string, staffId: string): Promise<ActionResult> {
-  await requireStaff();
+  const session = await requireStaff();
+  if (!canManage(session.role))
+    return { ok: false, error: "Hanya Waka Kesiswaan yang bisa mengelola pembina ekskul." };
   const e = await prisma.ekskul.findUnique({ where: { id: ekskulId }, include: { tahunAjaran: true } });
   if (!e) return { ok: false, error: "Ekskul tidak ditemukan." };
   if (e.tahunAjaran.status === "SELESAI") return { ok: false, error: "Tahun ajaran sudah selesai." };
@@ -641,7 +838,9 @@ export async function addEkskulGuruAction(ekskulId: string, staffId: string): Pr
 }
 
 export async function removeEkskulGuruAction(ekskulId: string, staffId: string): Promise<ActionResult> {
-  await requireStaff();
+  const session = await requireStaff();
+  if (!canManage(session.role))
+    return { ok: false, error: "Hanya Waka Kesiswaan yang bisa mengelola pembina ekskul." };
   await prisma.ekskulGuru.delete({ where: { ekskulId_staffId: { ekskulId, staffId } } });
   revalidatePath(`/ekskul/${ekskulId}`);
   return { ok: true };
@@ -649,7 +848,9 @@ export async function removeEkskulGuruAction(ekskulId: string, staffId: string):
 
 // ---------- Ekskul Anggota ----------
 export async function addEkskulAnggotaAction(ekskulId: string, siswaIds: string[]): Promise<ActionResult> {
-  await requireStaff();
+  const session = await requireStaff();
+  if (!canManage(session.role))
+    return { ok: false, error: "Hanya Waka Kesiswaan yang bisa mengelola anggota ekskul." };
   const e = await prisma.ekskul.findUnique({ where: { id: ekskulId }, include: { tahunAjaran: true } });
   if (!e) return { ok: false, error: "Ekskul tidak ditemukan." };
   if (e.tahunAjaran.status === "SELESAI") return { ok: false, error: "Tahun ajaran sudah selesai." };
@@ -663,7 +864,9 @@ export async function addEkskulAnggotaAction(ekskulId: string, siswaIds: string[
 }
 
 export async function removeEkskulAnggotaAction(ekskulId: string, siswaId: string): Promise<ActionResult> {
-  await requireStaff();
+  const session = await requireStaff();
+  if (!canManage(session.role))
+    return { ok: false, error: "Hanya Waka Kesiswaan yang bisa mengelola anggota ekskul." };
   await prisma.ekskulAnggota.delete({ where: { ekskulId_siswaId: { ekskulId, siswaId } } });
   revalidatePath(`/ekskul/${ekskulId}`);
   return { ok: true };
@@ -676,9 +879,12 @@ export async function addPresensiEkskulAction(
   entries: { siswaId: string; status: "HADIR" | "IZIN" | "SAKIT" | "ALPA" }[]
 ): Promise<ActionResult> {
   const session = await requireStaff();
-  const e = await prisma.ekskul.findUnique({ where: { id: ekskulId }, include: { tahunAjaran: true } });
+  const e = await prisma.ekskul.findUnique({ where: { id: ekskulId }, include: { tahunAjaran: true, guru: true } });
   if (!e) return { ok: false, error: "Ekskul tidak ditemukan." };
   if (e.tahunAjaran.status !== "BERJALAN") return { ok: false, error: "Presensi hanya bisa diinput saat tahun ajaran BERJALAN." };
+  const isPembina = e.guru.some(g => g.staffId === session.sub);
+  if (!canManage(session.role) && !isPembina)
+    return { ok: false, error: "Hanya pembina atau pengelola ekskul yang bisa input presensi." };
 
   const tgl = new Date(tanggal + "T00:00:00Z");
   await prisma.presensiEkskul.createMany({
@@ -697,9 +903,17 @@ export async function addPresensiEkskulAction(
 }
 
 export async function deletePresensiEkskulAction(id: string): Promise<ActionResult> {
-  await requireStaff();
+  const session = await requireStaff();
+  const rec = await prisma.presensiEkskul.findUnique({
+    where: { id },
+    include: { ekskul: { include: { guru: true } } },
+  });
+  if (!rec) return { ok: false, error: "Data presensi tidak ditemukan." };
+  const isPembina = rec.ekskul.guru.some(g => g.staffId === session.sub);
+  if (!canManage(session.role) && !isPembina)
+    return { ok: false, error: "Hanya pembina atau pengelola ekskul yang bisa menghapus presensi." };
   await prisma.presensiEkskul.delete({ where: { id } });
-  revalidatePath("/ekskul");
+  revalidatePath(`/ekskul/${rec.ekskulId}`);
   return { ok: true };
 }
 

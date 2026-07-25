@@ -176,3 +176,33 @@ export const IconChevron = (p: P) => (
     <path d="M6 9l6 6 6-6" />
   </svg>
 );
+
+export const IconGrid = (p: P) => (
+  <svg {...base(p)} strokeWidth={1.8}>
+    <rect x="3" y="3" width="7" height="7" rx="1" />
+    <rect x="14" y="3" width="7" height="7" rx="1" />
+    <rect x="3" y="14" width="7" height="7" rx="1" />
+    <rect x="14" y="14" width="7" height="7" rx="1" />
+  </svg>
+);
+
+export const IconFlag = (p: P) => (
+  <svg {...base(p)} strokeWidth={1.8}>
+    <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
+    <line x1="4" y1="22" x2="4" y2="15" />
+  </svg>
+);
+
+export const IconLock = (p: P) => (
+  <svg {...base(p)} strokeWidth={1.8}>
+    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+  </svg>
+);
+
+export const IconUser = (p: P) => (
+  <svg {...base(p)} strokeWidth={1.8}>
+    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+    <circle cx="12" cy="7" r="4" />
+  </svg>
+);

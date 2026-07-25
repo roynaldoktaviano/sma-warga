@@ -4,7 +4,7 @@
 // ============================================================
 import { SignJWT, jwtVerify } from "jose";
 
-export type SessionKind = "staff" | "siswa";
+export type SessionKind = "staff" | "siswa" | "ortu";
 export type SessionRole = "KESISWAAN" | "KEPSEK" | "GURU" | "GURU_BK" | "GURU_EKSKUL";
 
 export type Session = {

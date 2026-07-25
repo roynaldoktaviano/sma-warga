@@ -15,9 +15,9 @@ const TINGKAT_LABEL: Record<string, string> = {
 };
 const TINGKAT_COLOR: Record<string, string> = {
   SEKOLAH: "#64748b",
-  KOTA: "var(--accent)",
-  PROVINSI: "var(--good)",
-  NASIONAL: "var(--warn)",
+  KOTA: "#2563eb",
+  PROVINSI: "#16a34a",
+  NASIONAL: "#d97706",
   INTERNASIONAL: "#9333ea",
 };
 

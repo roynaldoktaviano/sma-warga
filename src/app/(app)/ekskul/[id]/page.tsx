@@ -1,6 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
-import { requireStaff, canViewEkskul, canManage } from "@/lib/auth";
+import { requireStaff, canManage, canVerify } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { fmtTanggal } from "@/lib/format";
 import { IconBack } from "@/components/icons";
@@ -17,10 +17,9 @@ const STATUS_ABSEN: Record<string, string> = {
 
 export default async function EkskulDetailPage({ params }: { params: { id: string } }) {
   const session = await requireStaff();
-  if (!canViewEkskul(session.role)) redirect("/dashboard");
 
-  const isManager = canManage(session.role);
-  const isGuruEkskul = session.role === "GURU_EKSKUL";
+  const isAdmin   = canVerify(session.role);  // KESISWAAN + KEPSEK
+  const isManager = canManage(session.role);  // KESISWAAN saja
 
   const ekskul = await prisma.ekskul.findUnique({
     where: { id: params.id },
@@ -41,11 +40,9 @@ export default async function EkskulDetailPage({ params }: { params: { id: strin
 
   if (!ekskul) notFound();
 
-  // For GURU_EKSKUL, only show ekskul they are assigned to
-  if (isGuruEkskul) {
-    const isAssigned = ekskul.guru.some(g => g.staffId === session.sub);
-    if (!isAssigned) redirect("/ekskul");
-  }
+  // Guru (GURU / GURU_EKSKUL) hanya bisa masuk kalau terdaftar sebagai pembina di ekskul ini
+  const isPembina = !isAdmin && ekskul.guru.some(g => g.staffId === session.sub);
+  if (!isAdmin && !isPembina) redirect("/ekskul");
 
   // Get all presensi grouped by tanggal
   const allPresensi = await prisma.presensiEkskul.findMany({
@@ -63,7 +60,7 @@ export default async function EkskulDetailPage({ params }: { params: { id: strin
   }
 
   const ta = ekskul.tahunAjaran;
-  const canInput = ta.status === "BERJALAN" && (isManager || isGuruEkskul);
+  const canInput = ta.status === "BERJALAN" && (isManager || isPembina);
   const locked = ta.status === "SELESAI";
 
   // Staff list for assigning guru
@@ -176,7 +173,7 @@ export default async function EkskulDetailPage({ params }: { params: { id: strin
               <PresensiEkskulButton
                 ekskulId={ekskul.id}
                 anggota={ekskul.anggota.map(a => ({ id: a.siswaId, nama: a.siswa.nama, kelas: a.siswa.kelas }))}
-                isGuruEkskul={isGuruEkskul}
+                isGuruEkskul={isPembina}
               />
             )}
           </div>

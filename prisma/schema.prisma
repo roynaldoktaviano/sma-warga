@@ -42,8 +42,10 @@ model Sekolah {
   staff                Staff[]
   siswa                Siswa[]
   tahunAjaran          TahunAjaran[]
+  kelas                Kelas[]
   kategoriPelanggaran  KategoriPelanggaran[]
   kategoriPrestasi     KategoriPrestasi[]
+  mataPelajaran        MataPelajaran[]
   createdAt            DateTime              @default(now())
 }
 
@@ -74,13 +76,16 @@ model KategoriPrestasi {
 model TahunAjaran {
   id        String   @id @default(cuid())
   nama      String   // e.g. "2024/2025"
+  semester  String   @default("GANJIL") // GANJIL | GENAP
   status    String   @default("PERSIAPAN") // PERSIAPAN | BERJALAN | SELESAI
+  isActive  Boolean  @default(false)        // hanya satu yang aktif di satu waktu
   sekolah   Sekolah  @relation(fields: [sekolahId], references: [id], onDelete: Cascade)
   sekolahId String
   ekskul    Ekskul[]
+  kelas     Kelas[]
   createdAt DateTime @default(now())
 
-  @@unique([sekolahId, nama])
+  @@unique([sekolahId, nama, semester])
   @@index([sekolahId])
 }
 
@@ -133,9 +138,36 @@ model Staff {
   prestasi        Prestasi[]
   ekskulGuru      EkskulGuru[]
   presensiEkskul  PresensiEkskul[]
+  waliKelas       Kelas[]          @relation("WaliKelas")
+  mapel           StaffMapel[]
   createdAt       DateTime     @default(now())
 
   @@index([sekolahId])
+}
+
+model MataPelajaran {
+  id        String       @id @default(cuid())
+  nama      String
+  kode      String?
+  kelas     String       @default("") // "" = semua kelas; "7", "8,9", "7,8,9" = spesifik
+  sekolah   Sekolah      @relation(fields: [sekolahId], references: [id], onDelete: Cascade)
+  sekolahId String
+  guru      StaffMapel[]
+  createdAt DateTime     @default(now())
+
+  @@unique([sekolahId, nama, kelas])
+  @@index([sekolahId])
+}
+
+model StaffMapel {
+  id              String        @id @default(cuid())
+  staff           Staff         @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  staffId         String
+  mataPelajaran   MataPelajaran @relation(fields: [mataPelajaranId], references: [id], onDelete: Cascade)
+  mataPelajaranId String
+
+  @@unique([staffId, mataPelajaranId])
+  @@index([mataPelajaranId])
 }
 
 model Siswa {
@@ -159,6 +191,7 @@ model Siswa {
   prestasi       Prestasi[]
   ekskulAnggota  EkskulAnggota[]
   presensiEkskul PresensiEkskul[]
+  kelasAnggota   KelasAnggota[]
   createdAt      DateTime        @default(now())
 
   @@index([sekolahId])
@@ -246,5 +279,32 @@ model PresensiEkskul {
 
   @@unique([ekskulId, siswaId, tanggal])
   @@index([ekskulId])
+  @@index([siswaId])
+}
+
+model Kelas {
+  id            String       @id @default(cuid())
+  nama          String
+  tahunAjaran   TahunAjaran  @relation(fields: [tahunAjaranId], references: [id], onDelete: Cascade)
+  tahunAjaranId String
+  waliKelas     Staff?       @relation("WaliKelas", fields: [waliKelasId], references: [id], onDelete: SetNull)
+  waliKelasId   String?
+  sekolah       Sekolah      @relation(fields: [sekolahId], references: [id], onDelete: Cascade)
+  sekolahId     String
+  anggota       KelasAnggota[]
+  createdAt     DateTime     @default(now())
+
+  @@unique([tahunAjaranId, nama])
+  @@index([sekolahId])
+}
+
+model KelasAnggota {
+  id      String @id @default(cuid())
+  kelas   Kelas  @relation(fields: [kelasId], references: [id], onDelete: Cascade)
+  kelasId String
+  siswa   Siswa  @relation(fields: [siswaId], references: [id], onDelete: Cascade)
+  siswaId String
+
+  @@unique([kelasId, siswaId])
   @@index([siswaId])
 }

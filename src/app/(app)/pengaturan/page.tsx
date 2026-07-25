@@ -1,31 +1,19 @@
 import { requireStaff } from "@/lib/auth";
 import { canManage } from "@/lib/roles";
+import { ROLE_LABEL } from "@/lib/roles";
 import { prisma } from "@/lib/prisma";
 import { AccountForm } from "@/components/AccountForm";
-import { AddStaffModalButton } from "@/components/AddStaffModalButton";
-import { DeleteStaffButton } from "@/components/DeleteStaffButton";
 import { ResetPasswordSiswaButton } from "@/components/ResetPasswordSiswaButton";
 
 export const dynamic = "force-dynamic";
 
-const ROLE_LABEL: Record<string, string> = {
-  KESISWAAN: "Waka Kesiswaan", KEPSEK: "Kepala Sekolah",
-  GURU: "Guru", GURU_BK: "Guru BK", GURU_EKSKUL: "Guru Ekskul",
-};
-
 export default async function PengaturanPage() {
   const session = await requireStaff();
 
-  const [staff, allStaff] = await Promise.all([
-    prisma.staff.findUnique({
-      where: { id: session.sub },
-      select: { id: true, nama: true, username: true, role: true },
-    }),
-    prisma.staff.findMany({
-      orderBy: { nama: "asc" },
-      select: { id: true, nama: true, username: true, role: true },
-    }),
-  ]);
+  const staff = await prisma.staff.findUnique({
+    where: { id: session.sub },
+    select: { id: true, nama: true, username: true, role: true },
+  });
 
   if (!staff) return null;
 
@@ -49,34 +37,6 @@ export default async function PengaturanPage() {
           <div className="settings-meta">{ROLE_LABEL[staff.role] ?? staff.role}</div>
         </div>
         <AccountForm staff={{ nama: staff.nama, username: staff.username }} />
-      </div>
-
-      {/* Daftar semua akun */}
-      <div style={{ marginTop: 24 }}>
-        <div className="page-head" style={{ marginBottom: 12 }}>
-          <div className="page-head-left">
-            <h2 style={{ fontSize: 15, fontWeight: 600, margin: 0 }}>Semua Akun Petugas</h2>
-          </div>
-          <div className="page-head-right">
-            <AddStaffModalButton />
-          </div>
-        </div>
-        <div className="card" style={{ overflow: "hidden" }}>
-          <div className="staff-list-head">
-            <span>Nama</span>
-            <span>Username</span>
-            <span>Role</span>
-            <span />
-          </div>
-          {allStaff.map((s) => (
-            <div key={s.id} className="staff-list-row">
-              <span style={{ fontWeight: 500 }}>{s.nama}</span>
-              <span style={{ color: "var(--ink-soft)", fontFamily: "var(--mono)", fontSize: 13 }}>@{s.username}</span>
-              <span className="role-badge">{ROLE_LABEL[s.role] ?? s.role}</span>
-              <DeleteStaffButton id={s.id} isSelf={s.id === session.sub} />
-            </div>
-          ))}
-        </div>
       </div>
 
       {/* Reset password siswa */}

@@ -41,9 +41,15 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     );
   }
 
+  const isOrtu = session.kind === "ortu";
   return (
     <div className="app-root app-root--siswa">
-      <Topbar roleLabel="Siswa" name={name} sub={sub} dotCls="ortu" />
+      <Topbar
+        roleLabel={isOrtu ? "Orang Tua" : "Siswa"}
+        name={name}
+        sub={sub}
+        dotCls="ortu"
+      />
       <main className="app-main">{children}</main>
     </div>
   );

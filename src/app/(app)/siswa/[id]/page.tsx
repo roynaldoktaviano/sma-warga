@@ -14,6 +14,12 @@ import { IconBack } from "@/components/icons";
 
 export const dynamic = "force-dynamic";
 
+const STATUS_LABEL: Record<string, string> = { HADIR: "Hadir", IZIN: "Izin", SAKIT: "Sakit", ALPA: "Alpa" };
+
+function formatTgl(d: Date | string) {
+  return new Date(d).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
+}
+
 export default async function SiswaPage({ params }: { params: { id: string } }) {
   const session = await requireStaff();
   const role = session.role ?? "";
@@ -31,6 +37,20 @@ export default async function SiswaPage({ params }: { params: { id: string } }) 
           verifikasiKepsekNama: true,
         },
       },
+      presensi: {
+        orderBy: { tanggal: "desc" },
+        select: { id: true, tanggal: true, status: true, keterangan: true },
+      },
+      ekskulAnggota: {
+        select: { ekskul: { select: { id: true, nama: true } } },
+      },
+      presensiEkskul: {
+        orderBy: { tanggal: "desc" },
+        select: {
+          id: true, tanggal: true, status: true, keterangan: true,
+          ekskul: { select: { id: true, nama: true } },
+        },
+      },
     },
   });
   if (!s) notFound();
@@ -43,6 +63,13 @@ export default async function SiswaPage({ params }: { params: { id: string } }) 
   const p = currentPoints(s.poinAwal, s.catatan);
   const st = statusOf(p);
   const stt = studentStats(s.catatan);
+
+  const absen = {
+    hadir: s.presensi.filter(r => r.status === "HADIR").length,
+    izin:  s.presensi.filter(r => r.status === "IZIN").length,
+    sakit: s.presensi.filter(r => r.status === "SAKIT").length,
+    alpa:  s.presensi.filter(r => r.status === "ALPA").length,
+  };
 
   return (
     <div className="shell">
@@ -112,6 +139,76 @@ export default async function SiswaPage({ params }: { params: { id: string } }) 
           canVerify={checkCanVerify(role)}
           role={role}
         />
+      </div>
+
+      {/* ── Presensi + Ekskul (2 kolom) ─────────────────── */}
+      <div className="ortu-cols-bottom">
+
+        {/* kiri: riwayat presensi sekolah */}
+        <div>
+          <div className="section-block-head">
+            <h2 className="section-block-title">Riwayat Presensi</h2>
+            <span className="section-block-count">{s.presensi.length} pertemuan</span>
+          </div>
+
+          {s.presensi.length === 0 ? (
+            <div className="card card-pad riwayat-empty">Belum ada data presensi.</div>
+          ) : (
+            <>
+              <div className="minis" style={{ marginBottom: 12 }}>
+                <div className="mini"><div className="mini-num up">{absen.hadir}</div><div className="mini-lab">Hadir</div></div>
+                <div className="mini"><div className="mini-num">{absen.izin}</div><div className="mini-lab">Izin</div></div>
+                <div className="mini"><div className="mini-num">{absen.sakit}</div><div className="mini-lab">Sakit</div></div>
+                <div className="mini"><div className="mini-num down">{absen.alpa}</div><div className="mini-lab">Alpa</div></div>
+              </div>
+              <div className="card riwayat-list">
+                {s.presensi.map(r => (
+                  <div key={r.id} className="riwayat-row">
+                    <span className="riwayat-date">{formatTgl(r.tanggal)}</span>
+                    <span className={`absen-pill absen-pill--${r.status.toLowerCase()}`}>{STATUS_LABEL[r.status]}</span>
+                    <span className="riwayat-ket">{r.keterangan || ""}</span>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* kanan: ekstrakulikuler */}
+        <div>
+          <div className="section-block-head">
+            <h2 className="section-block-title">Ekstrakulikuler</h2>
+          </div>
+
+          {s.ekskulAnggota.length === 0 ? (
+            <div className="card card-pad riwayat-empty">Tidak terdaftar di ekstrakulikuler.</div>
+          ) : (
+            <div className="card card-pad">
+              <div className="ekskul-tag-row">
+                {s.ekskulAnggota.map(ea => (
+                  <span key={ea.ekskul.id} className="ekskul-tag">{ea.ekskul.nama}</span>
+                ))}
+              </div>
+
+              {s.presensiEkskul.length > 0 && (
+                <>
+                  <div className="riwayat-sub-label">Riwayat Presensi Ekskul</div>
+                  <div className="riwayat-list" style={{ margin: "0 -16px -16px" }}>
+                    {s.presensiEkskul.map(pe => (
+                      <div key={pe.id} className="riwayat-row riwayat-row--ekskul">
+                        <span className="riwayat-ekskul-name">{pe.ekskul.nama}</span>
+                        <span className="riwayat-date">{formatTgl(pe.tanggal)}</span>
+                        <span className={`absen-pill absen-pill--${pe.status.toLowerCase()}`}>{STATUS_LABEL[pe.status]}</span>
+                        <span className="riwayat-ket">{pe.keterangan || ""}</span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+        </div>
+
       </div>
     </div>
   );

@@ -7,9 +7,9 @@ import { logoutAction } from "@/app/actions";
 import {
   IconClipboard, IconCalendar, IconSettings, IconLogout,
   IconUsers, IconBook, IconStar, IconDown, IconTrophy,
-  IconGauge, IconChevron,
+  IconGauge, IconChevron, IconGrid, IconFlag, IconUser,
 } from "./icons";
-import { canViewTatib, canViewEkskul, canManage } from "@/lib/roles";
+import { canViewTatib, canViewEkskul, canManage, canVerify } from "@/lib/roles";
 
 type Props = { name: string; sub: string; initials: string; role: string; hasEkskul?: boolean };
 
@@ -22,6 +22,7 @@ export function Sidebar({ name, sub, initials, role, hasEkskul = false }: Props)
   const showTatib    = canViewTatib(role);
   const showEkskul   = canViewEkskul(role) || hasEkskul;
   const showSettings = canManage(role);
+  const showAdmin    = canVerify(role);
 
   const tatibActive = TATIB_PATHS.some(p => path === p || path.startsWith(p + "/"));
   const [tatibOpen, setTatibOpen] = useState(tatibActive);
@@ -48,8 +49,23 @@ export function Sidebar({ name, sub, initials, role, hasEkskul = false }: Props)
         <div className="sidebar-group-label">Menu</div>
 
         {showTatib && (
+          <Link href="/presensi" className={"sidebar-link" + (active("/presensi") ? " sidebar-link--active" : "")}>
+            <IconCalendar /><span>Presensi</span>
+          </Link>
+        )}
+        {showAdmin && (
           <Link href="/siswa" className={"sidebar-link" + (active("/siswa") ? " sidebar-link--active" : "")}>
             <IconUsers /><span>Siswa</span>
+          </Link>
+        )}
+        {showAdmin && (
+          <Link href="/kelas" className={"sidebar-link" + (active("/kelas") ? " sidebar-link--active" : "")}>
+            <IconGrid /><span>Kelas</span>
+          </Link>
+        )}
+        {showAdmin && (
+          <Link href="/guru" className={"sidebar-link" + (active("/guru") ? " sidebar-link--active" : "")}>
+            <IconUser /><span>Guru</span>
           </Link>
         )}
 
@@ -65,26 +81,18 @@ export function Sidebar({ name, sub, initials, role, hasEkskul = false }: Props)
               <span>Tatib</span>
               <IconChevron className="sidebar-group-chevron" />
             </button>
-            {tatibOpen && (
-              <div className="sidebar-sub">
-                <Link href="/dashboard" className={"sidebar-sub-link" + (active("/dashboard") ? " sidebar-sub-link--active" : "")}>
-                  <IconGauge /><span>Dashboard</span>
-                </Link>
-                <Link href="/catatan" className={"sidebar-sub-link" + (active("/catatan") ? " sidebar-sub-link--active" : "")}>
-                  <IconDown /><span>Pelanggaran</span>
-                </Link>
-                <Link href="/prestasi" className={"sidebar-sub-link" + (active("/prestasi") ? " sidebar-sub-link--active" : "")}>
-                  <IconTrophy /><span>Prestasi</span>
-                </Link>
-              </div>
-            )}
+            <div className={"sidebar-sub" + (tatibOpen ? "" : " sidebar-sub--closed")}>
+              <Link href="/dashboard" className={"sidebar-sub-link" + (active("/dashboard") ? " sidebar-sub-link--active" : "")}>
+                <IconGauge /><span>Dashboard</span>
+              </Link>
+              <Link href="/catatan" className={"sidebar-sub-link" + (active("/catatan") ? " sidebar-sub-link--active" : "")}>
+                <IconDown /><span>Pelanggaran</span>
+              </Link>
+              <Link href="/prestasi" className={"sidebar-sub-link" + (active("/prestasi") ? " sidebar-sub-link--active" : "")}>
+                <IconTrophy /><span>Prestasi</span>
+              </Link>
+            </div>
           </>
-        )}
-
-        {showTatib && (
-          <Link href="/presensi" className={"sidebar-link" + (active("/presensi") ? " sidebar-link--active" : "")}>
-            <IconCalendar /><span>Presensi</span>
-          </Link>
         )}
         {showEkskul && (
           <Link href="/ekskul" className={"sidebar-link" + (active("/ekskul") ? " sidebar-link--active" : "")}>
@@ -95,6 +103,12 @@ export function Sidebar({ name, sub, initials, role, hasEkskul = false }: Props)
         {showSettings && (
           <>
             <div className="sidebar-group-label">Master Data</div>
+            <Link href="/tahun-ajaran" className={"sidebar-link" + (active("/tahun-ajaran") ? " sidebar-link--active" : "")}>
+              <IconFlag /><span>Tahun Ajaran</span>
+            </Link>
+            <Link href="/mapel" className={"sidebar-link" + (active("/mapel") ? " sidebar-link--active" : "")}>
+              <IconBook /><span>Mata Pelajaran</span>
+            </Link>
             <Link href="/pelanggaran" className={"sidebar-link" + (active("/pelanggaran") ? " sidebar-link--active" : "")}>
               <IconDown /><span>Pelanggaran</span>
             </Link>

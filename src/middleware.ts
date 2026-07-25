@@ -20,7 +20,7 @@ export async function middleware(req: NextRequest) {
   // Sudah login → jangan biarkan di /login atau root, arahkan ke beranda sesuai peran
   if (pathname === "/login" || pathname === "/") {
     const url = req.nextUrl.clone();
-    url.pathname = session.kind === "siswa" ? "/ortu" : "/dashboard";
+    url.pathname = (session.kind === "siswa" || session.kind === "ortu") ? "/ortu" : "/dashboard";
     return NextResponse.redirect(url);
   }
 

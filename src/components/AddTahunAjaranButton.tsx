@@ -10,17 +10,19 @@ import { IconPlus } from "./icons";
 export function AddTahunAjaranButton() {
   const [open, setOpen] = useState(false);
   const [nama, setNama] = useState("");
+  const [semester, setSemester] = useState<"GANJIL" | "GENAP">("GANJIL");
   const [pending, start] = useTransition();
   const router = useRouter();
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
     start(async () => {
-      const res = await addTahunAjaranAction(nama);
+      const res = await addTahunAjaranAction(nama, semester);
       if (res.ok) {
         toast("Tahun ajaran berhasil ditambahkan.");
         setOpen(false);
         setNama("");
+        setSemester("GANJIL");
         router.refresh();
       } else {
         toast(res.error, "bad");
@@ -41,7 +43,7 @@ export function AddTahunAjaranButton() {
           footer={
             <>
               <button type="button" className="btn btn-ghost" onClick={() => setOpen(false)}>Batal</button>
-              <button form="form-ta" type="submit" className="btn btn-accent" disabled={pending}>
+              <button form="form-ta" type="submit" className="btn btn-accent" disabled={pending || !nama.trim()}>
                 {pending ? "Menyimpan…" : "Simpan"}
               </button>
             </>
@@ -49,7 +51,7 @@ export function AddTahunAjaranButton() {
         >
           <form id="form-ta" onSubmit={submit}>
             <div className="field">
-              <label className="field-label">Nama Tahun Ajaran</label>
+              <label className="field-label">Tahun Ajaran</label>
               <input
                 className="input"
                 placeholder="Contoh: 2024/2025"
@@ -58,6 +60,13 @@ export function AddTahunAjaranButton() {
                 required
                 autoFocus
               />
+            </div>
+            <div className="field">
+              <label className="field-label">Semester</label>
+              <select value={semester} onChange={e => setSemester(e.target.value as "GANJIL" | "GENAP")}>
+                <option value="GANJIL">Ganjil (Semester 1)</option>
+                <option value="GENAP">Genap (Semester 2)</option>
+              </select>
             </div>
           </form>
         </ModalShell>

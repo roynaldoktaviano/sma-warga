@@ -8,7 +8,11 @@
       "Bash(DATABASE_URL=\"postgresql://neondb_owner:npg_4bzWcrQOLj5J@ep-damp-pine-ao1y1f4i.c-2.ap-southeast-1.aws.neon.tech/smawarga?sslmode=require\" npx tsx prisma/seed.ts)",
       "Bash(npx next *)",
       "Skill(artifact-design)",
-      "Skill(artifact-design:*)"
+      "Skill(artifact-design:*)",
+      "Bash(npx tsx -e ' *)",
+      "Bash(cat)",
+      "Bash(kill %1)",
+      "Bash(npm install *)"
     ],
     "additionalDirectories": [
       "/Users/user/Roy/sma-warga/src/app/(app)/ekskul"

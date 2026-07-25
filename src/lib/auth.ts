@@ -79,10 +79,10 @@ export async function requireManager(): Promise<Session> {
   return s;
 }
 
-// Wajib siswa (untuk halaman pantauan)
+// Wajib siswa atau orang tua (untuk halaman pantauan)
 export async function requireSiswa(): Promise<Session> {
   const s = await getSession();
   if (!s) redirect("/login");
-  if (s.kind !== "siswa") redirect("/dashboard");
+  if (s.kind !== "siswa" && s.kind !== "ortu") redirect("/dashboard");
   return s;
 }
