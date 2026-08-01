@@ -19,8 +19,8 @@ export default async function PelanggaranPage() {
 
   const items = await prisma.kategoriPelanggaran.findMany({
     where: { sekolahId: staff.sekolahId },
-    orderBy: [{ tingkatan: "asc" }, { nama: "asc" }],
-    select: { id: true, nama: true, tingkatan: true, poin: true },
+    orderBy: [{ poinMin: "asc" }, { nama: "asc" }],
+    select: { id: true, nama: true, poinMin: true, poinMax: true },
   });
 
   return (
@@ -30,7 +30,7 @@ export default async function PelanggaranPage() {
           <div className="eyebrow">Master Data</div>
           <h1 className="page-title">Kategori Pelanggaran</h1>
           <p style={{ fontSize: 13, color: "var(--ink-soft)", marginTop: 4 }}>
-            Daftar jenis pelanggaran beserta tingkatan dan pengurangan poin.
+            Daftar kategori pelanggaran beserta rentang poin pengurangannya. Nama pelanggaran spesifik diisi guru saat mencatat kejadian.
           </p>
         </div>
         <div className="page-head-right">

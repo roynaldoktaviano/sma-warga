@@ -19,8 +19,8 @@ export default async function KategoriPrestasiPage() {
 
   const items = await prisma.kategoriPrestasi.findMany({
     where: { sekolahId: staff.sekolahId },
-    orderBy: [{ tingkatan: "asc" }, { nama: "asc" }],
-    select: { id: true, nama: true, tingkatan: true, poin: true },
+    orderBy: [{ poinMin: "asc" }, { nama: "asc" }],
+    select: { id: true, nama: true, poinMin: true, poinMax: true },
   });
 
   return (
@@ -30,7 +30,7 @@ export default async function KategoriPrestasiPage() {
           <div className="eyebrow">Master Data</div>
           <h1 className="page-title">Kategori Prestasi</h1>
           <p style={{ fontSize: 13, color: "var(--ink-soft)", marginTop: 4 }}>
-            Daftar jenis prestasi beserta tingkatan dan penambahan poin.
+            Daftar kategori prestasi beserta rentang poin penambahannya. Nama prestasi spesifik diisi guru saat mencatat kejadian.
           </p>
         </div>
         <div className="page-head-right">

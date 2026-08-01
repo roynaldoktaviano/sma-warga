@@ -8,40 +8,28 @@ import { toast } from "./Toaster";
 import { IconUpload, IconDownload } from "./icons";
 
 type Mode = "pelanggaran" | "prestasi";
-type Row = { nama: string; tingkatan: string; poin: number; _error?: string };
+type Row = { nama: string; poinMin: number; poinMax: number; _error?: string };
 
-const TEMPLATES: Record<Mode, { header: string; rows: string[] }> = {
-  pelanggaran: {
-    header: "nama,tingkatan,poin",
-    rows: [
-      "Terlambat masuk sekolah,RINGAN,5",
-      "Tidak memakai seragam lengkap,RINGAN,5",
-      "Tidak mengerjakan PR,SEDANG,10",
-      "Membawa HP saat KBM,SEDANG,10",
-      "Membolos / keluar tanpa izin,BERAT,25",
-      "Berkelahi,BERAT,50",
-    ],
-  },
-  prestasi: {
-    header: "nama,tingkatan,poin",
-    rows: [
-      "Juara kelas,SEKOLAH,10",
-      "Aktif organisasi OSIS,SEKOLAH,15",
-      "Juara lomba tingkat kota,KOTA,25",
-      "Juara lomba tingkat provinsi,PROVINSI,35",
-      "Juara olimpiade nasional,NASIONAL,50",
-    ],
-  },
+const TEMPLATES: Record<Mode, string[]> = {
+  pelanggaran: [
+    "Kerapihan dan Pakaian,1,10",
+    "Kedisiplinan Waktu,1,15",
+    "Sikap dan Sopan Santun,5,20",
+    "Ketertiban Belajar,5,20",
+    "Pelanggaran Berat,20,50",
+  ],
+  prestasi: [
+    "Kedisiplinan dan Keteladanan,5,15",
+    "Organisasi dan Kepemimpinan,5,20",
+    "Non-Akademik / Bakat Minat,10,25",
+    "Akademik,10,30",
+    "Prestasi Tingkat Nasional/Internasional,30,50",
+  ],
 };
-
-const VALID_TINGKAT: Record<Mode, string[]> = {
-  pelanggaran: ["RINGAN", "SEDANG", "BERAT"],
-  prestasi: ["SEKOLAH", "KECAMATAN", "KOTA", "PROVINSI", "NASIONAL", "INTERNASIONAL"],
-};
+const HEADER = "nama,poinMin,poinMax";
 
 function downloadTemplate(mode: Mode) {
-  const t = TEMPLATES[mode];
-  const csv = [t.header, ...t.rows].join("\n");
+  const csv = [HEADER, ...TEMPLATES[mode]].join("\n");
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -51,23 +39,21 @@ function downloadTemplate(mode: Mode) {
   URL.revokeObjectURL(url);
 }
 
-function parseCSV(text: string, mode: Mode): Row[] {
+function parseCSV(text: string): Row[] {
   const lines = text.split(/\r?\n/).filter(l => l.trim());
   if (lines.length === 0) return [];
-  // skip header if first line looks like header
   const start = lines[0].toLowerCase().includes("nama") ? 1 : 0;
-  const validTingkat = VALID_TINGKAT[mode];
 
   return lines.slice(start).map(line => {
     const parts = line.split(",").map(s => s.trim().replace(/^"|"$/g, ""));
     const nama = parts[0] ?? "";
-    const tingkatan = (parts[1] ?? "").toUpperCase();
-    const poin = Math.abs(Math.round(Number(parts[2])));
+    const poinMin = Math.abs(Math.round(Number(parts[1])));
+    const poinMax = Math.abs(Math.round(Number(parts[2])));
     let _error: string | undefined;
     if (!nama) _error = "Nama kosong";
-    else if (!validTingkat.includes(tingkatan)) _error = `Tingkatan tidak valid (${parts[1] ?? "-"})`;
-    else if (!(poin > 0)) _error = "Poin harus > 0";
-    return { nama, tingkatan, poin, _error };
+    else if (!(poinMin > 0)) _error = "Poin minimum harus > 0";
+    else if (poinMax < poinMin) _error = "Poin maksimum harus ≥ poin minimum";
+    return { nama, poinMin, poinMax, _error };
   });
 }
 
@@ -77,15 +63,13 @@ export function ImportKategoriButton({ mode }: { mode: Mode }) {
   const [pending, start] = useTransition();
   const fileRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
+  const isP = mode === "pelanggaran";
 
   function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = ev => {
-      const text = ev.target?.result as string;
-      setRows(parseCSV(text, mode));
-    };
+    reader.onload = ev => setRows(parseCSV(ev.target?.result as string));
     reader.readAsText(file, "utf-8");
     e.target.value = "";
   }
@@ -96,10 +80,8 @@ export function ImportKategoriButton({ mode }: { mode: Mode }) {
   function submit() {
     if (validRows.length === 0) { toast("Tidak ada baris valid.", "bad"); return; }
     start(async () => {
-      const action = mode === "pelanggaran"
-        ? importKategoriPelanggaranAction
-        : importKategoriPrestasiAction;
-      const res = await action(validRows.map(r => ({ nama: r.nama, tingkatan: r.tingkatan, poin: r.poin })));
+      const action = isP ? importKategoriPelanggaranAction : importKategoriPrestasiAction;
+      const res = await action(validRows.map(r => ({ nama: r.nama, poinMin: r.poinMin, poinMax: r.poinMax })));
       if (res.ok) {
         toast(`${res.inserted} kategori ditambahkan${res.skipped > 0 ? `, ${res.skipped} dilewati` : ""}.`);
         setOpen(false);
@@ -110,9 +92,6 @@ export function ImportKategoriButton({ mode }: { mode: Mode }) {
       }
     });
   }
-
-  const isP = mode === "pelanggaran";
-  const validTingkatList = VALID_TINGKAT[mode].join(", ");
 
   return (
     <>
@@ -142,8 +121,8 @@ export function ImportKategoriButton({ mode }: { mode: Mode }) {
           {/* Format hint */}
           <div style={{ fontSize: 12.5, color: "var(--ink-soft)", background: "var(--surface-2)", borderRadius: 8, padding: "10px 14px", marginBottom: 14 }}>
             <div style={{ fontWeight: 600, marginBottom: 4 }}>Format CSV:</div>
-            <code style={{ fontSize: 12, display: "block", marginBottom: 4 }}>nama,tingkatan,poin</code>
-            <div>Tingkatan yang valid: <b>{validTingkatList}</b></div>
+            <code style={{ fontSize: 12, display: "block", marginBottom: 4 }}>{HEADER}</code>
+            <div>poinMin &amp; poinMax adalah rentang poin yang bisa {isP ? "dipotong" : "ditambahkan"} untuk kategori ini.</div>
             <div style={{ marginTop: 4 }}>
               <button
                 type="button"
@@ -170,16 +149,16 @@ export function ImportKategoriButton({ mode }: { mode: Mode }) {
               </div>
               <div style={{ border: "1px solid var(--line)", borderRadius: 8, overflow: "hidden", maxHeight: 280, overflowY: "auto" }}>
                 <div style={{
-                  display: "grid", gridTemplateColumns: "1fr 130px 70px",
+                  display: "grid", gridTemplateColumns: "1fr 90px 90px",
                   padding: "7px 14px", background: "var(--surface-2)", borderBottom: "1px solid var(--line)",
                   fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".05em", color: "var(--ink-faint)",
                   position: "sticky", top: 0,
                 }}>
-                  <span>Nama</span><span>Tingkatan</span><span>Poin</span>
+                  <span>Nama</span><span>Poin Min</span><span>Poin Max</span>
                 </div>
                 {rows.map((r, i) => (
                   <div key={i} style={{
-                    display: "grid", gridTemplateColumns: "1fr 130px 70px",
+                    display: "grid", gridTemplateColumns: "1fr 90px 90px",
                     padding: "8px 14px", borderBottom: "1px solid var(--line-soft)", alignItems: "center",
                     background: r._error ? "var(--bad-bg)" : "transparent",
                   }}>
@@ -187,8 +166,8 @@ export function ImportKategoriButton({ mode }: { mode: Mode }) {
                       {r.nama || <em style={{ color: "var(--ink-faint)" }}>(kosong)</em>}
                       {r._error && <span style={{ fontSize: 11, marginLeft: 8 }}>— {r._error}</span>}
                     </span>
-                    <span style={{ fontSize: 12, color: r._error ? "var(--bad)" : "var(--ink-soft)" }}>{r.tingkatan || "—"}</span>
-                    <span style={{ fontSize: 12, fontFamily: "var(--mono)" }}>{r.poin || "—"}</span>
+                    <span style={{ fontSize: 12, fontFamily: "var(--mono)" }}>{r.poinMin || "—"}</span>
+                    <span style={{ fontSize: 12, fontFamily: "var(--mono)" }}>{r.poinMax || "—"}</span>
                   </div>
                 ))}
               </div>

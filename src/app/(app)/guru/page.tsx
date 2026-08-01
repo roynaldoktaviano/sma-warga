@@ -3,6 +3,7 @@ import { ROLE_LABEL } from "@/lib/roles";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { AddStaffModalButton } from "@/components/AddStaffModalButton";
+import { EditStaffModalButton } from "@/components/EditStaffModalButton";
 import { DeleteStaffButton } from "@/components/DeleteStaffButton";
 import { AssignMapelButton } from "@/components/AssignMapelButton";
 import { IconUser } from "@/components/icons";
@@ -121,7 +122,10 @@ export default async function GuruPage() {
                   : <span style={{ color: "var(--ink-faint)" }}>—</span>}
               </div>
               {isAdmin && (
-                <DeleteStaffButton id={s.id} isSelf={s.id === session.sub} />
+                <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
+                  <EditStaffModalButton staff={{ id: s.id, nama: s.nama, username: s.username, role: s.role }} />
+                  <DeleteStaffButton id={s.id} isSelf={s.id === session.sub} />
+                </div>
               )}
             </div>
           ))

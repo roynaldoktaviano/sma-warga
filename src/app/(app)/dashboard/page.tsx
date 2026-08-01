@@ -37,8 +37,8 @@ export default async function TatibPage() {
   const sekolahId = siswa[0]?.sekolahId ?? (await prisma.sekolah.findFirst())?.id;
   const [kategoriPelanggaran, kategoriPrestasi] = sekolahId
     ? await Promise.all([
-        prisma.kategoriPelanggaran.findMany({ where: { sekolahId }, orderBy: { nama: "asc" }, select: { id: true, nama: true, poin: true } }),
-        prisma.kategoriPrestasi.findMany({ where: { sekolahId }, orderBy: { nama: "asc" }, select: { id: true, nama: true, poin: true } }),
+        prisma.kategoriPelanggaran.findMany({ where: { sekolahId }, orderBy: { nama: "asc" }, select: { id: true, nama: true, poinMin: true, poinMax: true } }),
+        prisma.kategoriPrestasi.findMany({ where: { sekolahId }, orderBy: { nama: "asc" }, select: { id: true, nama: true, poinMin: true, poinMax: true } }),
       ])
     : [[], []];
 

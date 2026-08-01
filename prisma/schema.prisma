@@ -37,23 +37,24 @@ enum Tingkat {
 }
 
 model Sekolah {
-  id                   String                @id @default(cuid())
-  nama                 String
-  staff                Staff[]
-  siswa                Siswa[]
-  tahunAjaran          TahunAjaran[]
-  kelas                Kelas[]
-  kategoriPelanggaran  KategoriPelanggaran[]
-  kategoriPrestasi     KategoriPrestasi[]
-  mataPelajaran        MataPelajaran[]
-  createdAt            DateTime              @default(now())
+  id                      String                @id @default(cuid())
+  nama                    String
+  izinGantiPasswordSiswa  Boolean               @default(false) // siswa/ortu boleh ganti password sendiri
+  staff                   Staff[]
+  siswa                   Siswa[]
+  tahunAjaran             TahunAjaran[]
+  kelas                   Kelas[]
+  kategoriPelanggaran     KategoriPelanggaran[]
+  kategoriPrestasi        KategoriPrestasi[]
+  mataPelajaran           MataPelajaran[]
+  createdAt               DateTime              @default(now())
 }
 
 model KategoriPelanggaran {
   id        String   @id @default(cuid())
   nama      String
-  tingkatan String   // RINGAN | SEDANG | BERAT
-  poin      Int      // magnitudo, selalu positif; disimpan negatif di Catatan
+  poinMin   Int      // batas bawah poin yang bisa dipotong untuk kategori ini
+  poinMax   Int      // batas atas poin yang bisa dipotong untuk kategori ini
   sekolah   Sekolah  @relation(fields: [sekolahId], references: [id], onDelete: Cascade)
   sekolahId String
   createdAt DateTime @default(now())
@@ -64,8 +65,8 @@ model KategoriPelanggaran {
 model KategoriPrestasi {
   id        String   @id @default(cuid())
   nama      String
-  tingkatan String   // SEKOLAH | KECAMATAN | KOTA | PROVINSI | NASIONAL
-  poin      Int
+  poinMin   Int      // batas bawah poin yang bisa ditambahkan untuk kategori ini
+  poinMax   Int      // batas atas poin yang bisa ditambahkan untuk kategori ini
   sekolah   Sekolah  @relation(fields: [sekolahId], references: [id], onDelete: Cascade)
   sekolahId String
   createdAt DateTime @default(now())
@@ -183,6 +184,7 @@ model Siswa {
   status         String          @default("AKTIF") // AKTIF | LULUS | PINDAH
   username       String          @unique
   password       String
+  passwordOrtu   String          @default("") // password login ortu-{nisn}, terpisah dari password siswa
   poinAwal       Int             @default(100)
   sekolah        Sekolah         @relation(fields: [sekolahId], references: [id], onDelete: Cascade)
   sekolahId      String

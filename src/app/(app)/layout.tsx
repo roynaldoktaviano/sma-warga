@@ -42,6 +42,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   }
 
   const isOrtu = session.kind === "ortu";
+  const sekolah = await prisma.sekolah.findFirst({ select: { izinGantiPasswordSiswa: true } });
+
   return (
     <div className="app-root app-root--siswa">
       <Topbar
@@ -49,6 +51,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         name={name}
         sub={sub}
         dotCls="ortu"
+        canGantiPassword={sekolah?.izinGantiPasswordSiswa ?? false}
       />
       <main className="app-main">{children}</main>
     </div>

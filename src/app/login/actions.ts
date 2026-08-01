@@ -20,11 +20,11 @@ export async function loginAction(
     redirect(isGuru ? "/presensi" : "/dashboard");
   }
 
-  // 2) coba sebagai orang tua — username ortu-{nisn}
+  // 2) coba sebagai orang tua — username ortu-{nisn}, password terpisah dari siswa
   if (u.startsWith("ortu-")) {
     const nisn = u.slice(5);
     const siswa = await prisma.siswa.findUnique({ where: { nisn } });
-    if (siswa && (await bcrypt.compare(password, siswa.password))) {
+    if (siswa && (await bcrypt.compare(password, siswa.passwordOrtu))) {
       await createSession({ sub: siswa.id, kind: "ortu", name: siswa.nama });
       redirect("/ortu");
     }

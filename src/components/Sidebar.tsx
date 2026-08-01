@@ -115,12 +115,13 @@ export function Sidebar({ name, sub, initials, role, hasEkskul = false }: Props)
             <Link href="/kategori-prestasi" className={"sidebar-link" + (active("/kategori-prestasi") ? " sidebar-link--active" : "")}>
               <IconBook /><span>Prestasi</span>
             </Link>
-            <div className="sidebar-group-label">Sistem</div>
-            <Link href="/pengaturan" className={"sidebar-link" + (active("/pengaturan") ? " sidebar-link--active" : "")}>
-              <IconSettings /><span>Pengaturan</span>
-            </Link>
           </>
         )}
+
+        <div className="sidebar-group-label">Sistem</div>
+        <Link href="/pengaturan" className={"sidebar-link" + (active("/pengaturan") ? " sidebar-link--active" : "")}>
+          <IconSettings /><span>Pengaturan</span>
+        </Link>
       </nav>
 
       {/* User + logout */}

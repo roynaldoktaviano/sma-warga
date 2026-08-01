@@ -12,70 +12,33 @@ import { toast } from "./Toaster";
 import { ModalShell } from "./ModalShell";
 import { IconPlus, IconX } from "./icons";
 
-type KatItem = { id: string; nama: string; tingkatan: string; poin: number };
-type TingkatOpt = { value: string; label: string };
+type KatItem = { id: string; nama: string; poinMin: number; poinMax: number };
 
-const TINGKAT_PELANGGARAN: TingkatOpt[] = [
-  { value: "RINGAN", label: "Ringan" },
-  { value: "SEDANG", label: "Sedang" },
-  { value: "BERAT",  label: "Berat"  },
-];
-const TINGKAT_PRESTASI: TingkatOpt[] = [
-  { value: "SEKOLAH",      label: "Sekolah"      },
-  { value: "KECAMATAN",    label: "Kecamatan"    },
-  { value: "KOTA",         label: "Kota"         },
-  { value: "PROVINSI",     label: "Provinsi"     },
-  { value: "NASIONAL",     label: "Nasional"     },
-  { value: "INTERNASIONAL",label: "Internasional"},
-];
-
-const TINGKAT_COLOR: Record<string, { bg: string; color: string }> = {
-  RINGAN:       { bg: "var(--warn-bg)",      color: "var(--warn)"     },
-  SEDANG:       { bg: "#fff0f0",             color: "#e05252"         },
-  BERAT:        { bg: "var(--bad-bg)",       color: "var(--bad)"      },
-  SEKOLAH:      { bg: "var(--line-soft)",    color: "var(--ink-soft)" },
-  KECAMATAN:    { bg: "var(--accent-soft)",  color: "var(--accent)"   },
-  KOTA:         { bg: "var(--accent-soft)",  color: "var(--accent)"   },
-  PROVINSI:     { bg: "var(--good-bg)",      color: "var(--good)"     },
-  NASIONAL:     { bg: "var(--good-bg)",      color: "var(--good)"     },
-  INTERNASIONAL:{ bg: "#f3f0ff",             color: "#7c3aed"         },
-};
-
-function TingkatBadge({ t }: { t: string }) {
-  const c = TINGKAT_COLOR[t] ?? { bg: "var(--line-soft)", color: "var(--ink-soft)" };
-  return (
-    <span style={{ fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 4, background: c.bg, color: c.color }}>
-      {t.charAt(0) + t.slice(1).toLowerCase()}
-    </span>
-  );
-}
-
-function AddModal({
-  title,
-  tingkatanOpts,
+function AddRangeModal({
+  namaPlaceholder,
   onSave,
   onClose,
 }: {
-  title: string;
-  tingkatanOpts: TingkatOpt[];
-  onSave: (nama: string, tingkatan: string, poin: number) => void;
+  namaPlaceholder: string;
+  onSave: (nama: string, poinMin: number, poinMax: number) => void;
   onClose: () => void;
 }) {
-  const [nama, setNama]         = useState("");
-  const [tingkatan, setTingkatan] = useState(tingkatanOpts[0].value);
-  const [poin, setPoin]         = useState(10);
+  const [nama, setNama] = useState("");
+  const [poinMin, setPoinMin] = useState(1);
+  const [poinMax, setPoinMax] = useState(10);
+  const valid = nama.trim() && poinMin > 0 && poinMax >= poinMin;
 
   return (
     <ModalShell
-      title={title}
+      title="Tambah Kategori"
       onClose={onClose}
       footer={
         <>
           <button className="btn btn-ghost" onClick={onClose}>Batal</button>
           <button
             className="btn btn-accent"
-            onClick={() => { if (nama.trim() && poin > 0) onSave(nama.trim(), tingkatan, poin); }}
-            disabled={!nama.trim() || poin <= 0}
+            onClick={() => { if (valid) onSave(nama.trim(), poinMin, poinMax); }}
+            disabled={!valid}
           >
             Simpan
           </button>
@@ -83,37 +46,41 @@ function AddModal({
       }
     >
       <div className="field">
-        <label className="field-label">Nama</label>
-        <input className="input" value={nama} onChange={e => setNama(e.target.value)} placeholder="Nama kategori" autoFocus />
+        <label className="field-label">Nama Kategori</label>
+        <input className="input" value={nama} onChange={e => setNama(e.target.value)} placeholder={namaPlaceholder} autoFocus />
       </div>
       <div className="two">
         <div className="field">
-          <label className="field-label">Tingkatan</label>
-          <select className="input" value={tingkatan} onChange={e => setTingkatan(e.target.value)}>
-            {tingkatanOpts.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-          </select>
+          <label className="field-label">Poin Minimum</label>
+          <input className="input" type="number" min={1} value={poinMin} onChange={e => setPoinMin(Number(e.target.value))} />
         </div>
         <div className="field">
-          <label className="field-label">Poin</label>
-          <input className="input" type="number" min={1} value={poin} onChange={e => setPoin(Number(e.target.value))} />
+          <label className="field-label">Poin Maksimum</label>
+          <input className="input" type="number" min={poinMin} value={poinMax} onChange={e => setPoinMax(Number(e.target.value))} />
         </div>
       </div>
+      {poinMax < poinMin && (
+        <p style={{ fontSize: 12, color: "var(--bad)", marginTop: -8 }}>Poin maksimum harus ≥ poin minimum.</p>
+      )}
+      <p style={{ fontSize: 12, color: "var(--ink-faint)", marginTop: 4 }}>
+        Guru akan memilih kategori ini lalu mengisi sendiri nama kejadian spesifik dan poinnya (dibatasi rentang di atas).
+      </p>
     </ModalShell>
   );
 }
 
-// ---------- Generic table ----------
-function KategoriTable({
+// ---------- Generic table (dipakai Pelanggaran & Prestasi — sama-sama kategori = range poin) ----------
+function RangeKategoriTable({
   items,
-  tingkatanOpts,
-  addLabel,
+  namaPlaceholder,
+  poinColor,
   onAdd,
   onDelete,
 }: {
   items: KatItem[];
-  tingkatanOpts: TingkatOpt[];
-  addLabel: string;
-  onAdd: (nama: string, tingkatan: string, poin: number) => void;
+  namaPlaceholder: string;
+  poinColor: string;
+  onAdd: (nama: string, poinMin: number, poinMax: number) => void;
   onDelete: (id: string) => void;
 }) {
   const [showModal, setShowModal] = useState(false);
@@ -122,7 +89,7 @@ function KategoriTable({
     <div>
       <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
         <button className="btn btn-accent" onClick={() => setShowModal(true)}>
-          <IconPlus /> {addLabel}
+          <IconPlus /> Tambah Kategori
         </button>
       </div>
 
@@ -134,20 +101,21 @@ function KategoriTable({
         ) : (
           <>
             <div style={{
-              display: "grid", gridTemplateColumns: "1fr 130px 80px 36px",
+              display: "grid", gridTemplateColumns: "1fr 140px 36px",
               padding: "8px 16px", background: "var(--surface-2)", borderBottom: "1px solid var(--line)",
               fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".05em", color: "var(--ink-faint)",
             }}>
-              <span>Nama</span><span>Tingkatan</span><span>Poin</span><span />
+              <span>Nama Kategori</span><span>Rentang Poin</span><span />
             </div>
             {items.map(item => (
               <div key={item.id} style={{
-                display: "grid", gridTemplateColumns: "1fr 130px 80px 36px",
+                display: "grid", gridTemplateColumns: "1fr 140px 36px",
                 padding: "11px 16px", borderBottom: "1px solid var(--line-soft)", alignItems: "center",
               }}>
                 <span style={{ fontSize: 13, fontWeight: 500 }}>{item.nama}</span>
-                <TingkatBadge t={item.tingkatan} />
-                <span style={{ fontSize: 13, fontFamily: "var(--mono)", fontWeight: 600 }}>{item.poin}</span>
+                <span style={{ fontSize: 13, fontFamily: "var(--mono)", fontWeight: 600, color: poinColor }}>
+                  {item.poinMin}–{item.poinMax}
+                </span>
                 <button
                   onClick={() => onDelete(item.id)}
                   style={{ background: "transparent", border: "none", color: "var(--ink-faint)", cursor: "pointer", padding: 4, borderRadius: 4 }}
@@ -162,11 +130,10 @@ function KategoriTable({
       </div>
 
       {showModal && (
-        <AddModal
-          title={addLabel}
-          tingkatanOpts={tingkatanOpts}
+        <AddRangeModal
+          namaPlaceholder={namaPlaceholder}
           onClose={() => setShowModal(false)}
-          onSave={(nama, tingkatan, poin) => { onAdd(nama, tingkatan, poin); setShowModal(false); }}
+          onSave={(nama, poinMin, poinMax) => { onAdd(nama, poinMin, poinMax); setShowModal(false); }}
         />
       )}
     </div>
@@ -179,9 +146,9 @@ export function PelanggaranManager({ items }: { items: KatItem[] }) {
   const router = useRouter();
   void pending;
 
-  function add(nama: string, tingkatan: string, poin: number) {
+  function add(nama: string, poinMin: number, poinMax: number) {
     start(async () => {
-      const res = await addKategoriPelanggaranAction({ nama, tingkatan, poin });
+      const res = await addKategoriPelanggaranAction({ nama, poinMin, poinMax });
       if (res.ok) { toast("Kategori ditambahkan."); router.refresh(); }
       else toast(res.error, "bad");
     });
@@ -195,10 +162,10 @@ export function PelanggaranManager({ items }: { items: KatItem[] }) {
   }
 
   return (
-    <KategoriTable
+    <RangeKategoriTable
       items={items}
-      tingkatanOpts={TINGKAT_PELANGGARAN}
-      addLabel="Tambah Kategori"
+      namaPlaceholder="mis. Kerapihan dan Pakaian"
+      poinColor="var(--bad)"
       onAdd={add}
       onDelete={del}
     />
@@ -211,9 +178,9 @@ export function PrestasiManager({ items }: { items: KatItem[] }) {
   const router = useRouter();
   void pending;
 
-  function add(nama: string, tingkatan: string, poin: number) {
+  function add(nama: string, poinMin: number, poinMax: number) {
     start(async () => {
-      const res = await addKategoriPrestasiAction({ nama, tingkatan, poin });
+      const res = await addKategoriPrestasiAction({ nama, poinMin, poinMax });
       if (res.ok) { toast("Kategori ditambahkan."); router.refresh(); }
       else toast(res.error, "bad");
     });
@@ -227,10 +194,10 @@ export function PrestasiManager({ items }: { items: KatItem[] }) {
   }
 
   return (
-    <KategoriTable
+    <RangeKategoriTable
       items={items}
-      tingkatanOpts={TINGKAT_PRESTASI}
-      addLabel="Tambah Kategori"
+      namaPlaceholder="mis. Akademik"
+      poinColor="var(--good)"
       onAdd={add}
       onDelete={del}
     />

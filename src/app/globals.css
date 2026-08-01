@@ -342,14 +342,14 @@ a { color: inherit; text-decoration: none; }
    ============================================================ */
 .guru-table-head {
   display: grid;
-  grid-template-columns: 1.6fr 150px 1.4fr 120px 120px 48px;
+  grid-template-columns: 1.6fr 150px 1.4fr 120px 120px 84px;
   gap: 12px; padding: 9px 18px;
   font-size: 11px; letter-spacing: .05em; text-transform: uppercase;
   color: var(--ink-faint); font-weight: 500; border-bottom: 1px solid var(--line);
 }
 .guru-table-row {
   display: grid;
-  grid-template-columns: 1.6fr 150px 1.4fr 120px 120px 48px;
+  grid-template-columns: 1.6fr 150px 1.4fr 120px 120px 84px;
   gap: 12px; align-items: center; padding: 11px 18px;
   border-bottom: 1px solid var(--line-soft); transition: background .08s;
 }
@@ -979,14 +979,15 @@ a { color: inherit; text-decoration: none; }
   padding: 3px 10px; border-radius: 999px;
 }
 
-/* Delete icon button */
-.btn-icon-del {
-  width: 30px; height: 30px; display: grid; place-items: center;
+/* Delete / edit icon button */
+.btn-icon-del, .btn-icon-edit {
+  width: 30px; height: 30px; display: grid; place-items: center; flex: none;
   border: none; background: transparent; color: var(--ink-faint);
   border-radius: 7px; transition: background .1s, color .1s;
 }
 .btn-icon-del:hover { background: var(--bad-bg); color: var(--bad); }
-.btn-icon-del svg { width: 14px; height: 14px; }
+.btn-icon-edit:hover { background: var(--accent-soft); color: var(--accent); }
+.btn-icon-del svg, .btn-icon-edit svg { width: 14px; height: 14px; }
 
 /* ============================================================
    Import CSV

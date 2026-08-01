@@ -34,34 +34,25 @@ export function parentLine(key: StatusKey): string {
   }
 }
 
-// Jenis kategori — "poin" di sini adalah magnitudo (selalu positif)
-export type KategoriItem = { label: string; poin: number };
+// Kategori pelanggaran & prestasi sekarang berupa RANGE poin (min–max), bukan poin tetap.
+// Guru memilih kategori ini lalu mengisi sendiri nama kejadian & poin di dalam rentangnya.
+export type KategoriRangeItem = { label: string; poinMin: number; poinMax: number };
 
-export const KATEGORI: Record<"pelanggaran" | "prestasi", KategoriItem[]> = {
-  pelanggaran: [
-    { label: "Terlambat masuk sekolah", poin: 5 },
-    { label: "Tidak memakai atribut/seragam lengkap", poin: 5 },
-    { label: "Tidak mengerjakan tugas/PR", poin: 10 },
-    { label: "Membawa HP saat KBM", poin: 10 },
-    { label: "Tidak mengikuti upacara", poin: 10 },
-    { label: "Berkata kasar / tidak sopan", poin: 15 },
-    { label: "Membolos / keluar tanpa izin", poin: 25 },
-    { label: "Merusak fasilitas sekolah", poin: 30 },
-    { label: "Berkelahi", poin: 50 },
-    { label: "Merokok / membawa rokok", poin: 50 },
-    { label: "Lainnya", poin: 0 },
-  ],
-  prestasi: [
-    { label: "Kehadiran penuh (sebulan)", poin: 10 },
-    { label: "Membantu guru / teman", poin: 10 },
-    { label: "Perilaku terpuji / jujur", poin: 10 },
-    { label: "Aktif organisasi (OSIS/ekskul)", poin: 15 },
-    { label: "Mewakili sekolah", poin: 20 },
-    { label: "Juara lomba non-akademik", poin: 25 },
-    { label: "Juara lomba akademik", poin: 30 },
-    { label: "Lainnya", poin: 0 },
-  ],
-};
+export const KATEGORI_PELANGGARAN: KategoriRangeItem[] = [
+  { label: "Kerapihan dan Pakaian", poinMin: 1, poinMax: 10 },
+  { label: "Kedisiplinan Waktu", poinMin: 1, poinMax: 15 },
+  { label: "Sikap dan Sopan Santun", poinMin: 5, poinMax: 20 },
+  { label: "Ketertiban Belajar", poinMin: 5, poinMax: 20 },
+  { label: "Pelanggaran Berat", poinMin: 20, poinMax: 50 },
+];
+
+export const KATEGORI_PRESTASI: KategoriRangeItem[] = [
+  { label: "Kedisiplinan dan Keteladanan", poinMin: 5, poinMax: 15 },
+  { label: "Organisasi dan Kepemimpinan", poinMin: 5, poinMax: 20 },
+  { label: "Non-Akademik / Bakat Minat", poinMin: 10, poinMax: 25 },
+  { label: "Akademik", poinMin: 10, poinMax: 30 },
+  { label: "Prestasi Tingkat Nasional/Internasional", poinMin: 30, poinMax: 50 },
+];
 
 // --- perhitungan dari daftar catatan (poin sudah bertanda) ---
 // Hanya catatan VERIFIED yang mempengaruhi poin

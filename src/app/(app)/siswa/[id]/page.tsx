@@ -56,8 +56,8 @@ export default async function SiswaPage({ params }: { params: { id: string } }) 
   if (!s) notFound();
 
   const [kategoriPelanggaran, kategoriPrestasi] = await Promise.all([
-    prisma.kategoriPelanggaran.findMany({ where: { sekolahId: s.sekolahId }, orderBy: { nama: "asc" }, select: { id: true, nama: true, poin: true } }),
-    prisma.kategoriPrestasi.findMany({ where: { sekolahId: s.sekolahId }, orderBy: { nama: "asc" }, select: { id: true, nama: true, poin: true } }),
+    prisma.kategoriPelanggaran.findMany({ where: { sekolahId: s.sekolahId }, orderBy: { nama: "asc" }, select: { id: true, nama: true, poinMin: true, poinMax: true } }),
+    prisma.kategoriPrestasi.findMany({ where: { sekolahId: s.sekolahId }, orderBy: { nama: "asc" }, select: { id: true, nama: true, poinMin: true, poinMax: true } }),
   ]);
 
   const p = currentPoints(s.poinAwal, s.catatan);

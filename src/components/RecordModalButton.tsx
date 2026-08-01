@@ -1,8 +1,8 @@
 "use client";
 
-import { useMemo, useRef, useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { KATEGORI } from "@/lib/points";
+import { KATEGORI_PELANGGARAN, KATEGORI_PRESTASI } from "@/lib/points";
 import { todayISO } from "@/lib/format";
 import { addRecordAction } from "@/app/actions";
 import { ModalShell } from "./ModalShell";
@@ -11,40 +11,36 @@ import { toast } from "./Toaster";
 import { IconPlus, IconUp, IconDown } from "./icons";
 
 type StudentOpt = { id: string; nama: string; kelas: string };
-type KatOpt = { id: string; nama: string; poin: number };
+type KatOpt = { id: string; nama: string; poinMin: number; poinMax: number };
 
-const FALLBACK_PEL: KatOpt[] = KATEGORI.pelanggaran
-  .filter(k => k.poin > 0)
-  .map(k => ({ id: k.label, nama: k.label, poin: k.poin }));
-const FALLBACK_PRE: KatOpt[] = KATEGORI.prestasi
-  .filter(k => k.poin > 0)
-  .map(k => ({ id: k.label, nama: k.label, poin: k.poin }));
+const FALLBACK_PEL: KatOpt[] = KATEGORI_PELANGGARAN.map(k => ({
+  id: k.label, nama: k.label, poinMin: k.poinMin, poinMax: k.poinMax,
+}));
+const FALLBACK_PRE: KatOpt[] = KATEGORI_PRESTASI.map(k => ({
+  id: k.label, nama: k.label, poinMin: k.poinMin, poinMax: k.poinMax,
+}));
 
-const OTHER_ID = "__other__";
-const OTHER_OPT: KatOpt = { id: OTHER_ID, nama: "Lainnya (isi manual)", poin: 0 };
-
-// ---------- Searchable combobox ----------
-function KatCombo({ list, selectedId, onSelect, isUp }: {
+// ---------- Searchable combobox — kategori = range poin ----------
+function KatCombo({ list, selectedId, onSelect, bg, color }: {
   list: KatOpt[];
   selectedId: string;
-  onSelect: (id: string, poin: number) => void;
-  isUp: boolean;
+  onSelect: (opt: KatOpt) => void;
+  bg: string;
+  color: string;
 }) {
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
 
-  const allOpts = useMemo(() => [...list, OTHER_OPT], [list]);
   const filtered = useMemo(() =>
     q.trim() === ""
-      ? allOpts
-      : allOpts.filter(o => o.nama.toLowerCase().includes(q.toLowerCase())),
-    [allOpts, q]);
+      ? list
+      : list.filter(o => o.nama.toLowerCase().includes(q.toLowerCase())),
+    [list, q]);
 
-  const selected = allOpts.find(o => o.id === selectedId);
+  const selected = list.find(o => o.id === selectedId);
 
   function pick(opt: KatOpt) {
-    onSelect(opt.id, opt.poin);
+    onSelect(opt);
     setQ("");
     setOpen(false);
   }
@@ -52,11 +48,10 @@ function KatCombo({ list, selectedId, onSelect, isUp }: {
   return (
     <div style={{ position: "relative" }}>
       <input
-        ref={inputRef}
         type="text"
         className="input"
         placeholder="Cari atau pilih kategori…"
-        value={open ? q : (selected?.nama ?? "")}
+        value={open ? q : (selected ? `${selected.nama} (${selected.poinMin}–${selected.poinMax})` : "")}
         onFocus={() => { setQ(""); setOpen(true); }}
         onChange={e => { setQ(e.target.value); setOpen(true); }}
         onBlur={() => setTimeout(() => setOpen(false), 150)}
@@ -73,7 +68,6 @@ function KatCombo({ list, selectedId, onSelect, isUp }: {
             <div style={{ padding: "10px 14px", fontSize: 13, color: "var(--ink-faint)" }}>Tidak ditemukan</div>
           )}
           {filtered.map(opt => {
-            const isOtherOpt = opt.id === OTHER_ID;
             const active = opt.id === selectedId;
             return (
               <button
@@ -86,20 +80,17 @@ function KatCombo({ list, selectedId, onSelect, isUp }: {
                   background: active ? "var(--accent-soft)" : "transparent",
                   border: "none", borderTop: "1px solid var(--line-soft)",
                   cursor: "pointer", fontSize: 13,
-                  color: active ? "var(--accent)" : isOtherOpt ? "var(--ink-soft)" : "var(--ink)",
+                  color: active ? "var(--accent)" : "var(--ink)",
                   fontWeight: active ? 600 : 400,
                 }}
               >
                 <span>{opt.nama}</span>
-                {!isOtherOpt && (
-                  <span style={{
-                    fontSize: 11.5, fontWeight: 600, padding: "1px 7px", borderRadius: 4, flexShrink: 0,
-                    background: isUp ? "var(--good-bg)" : "var(--bad-bg)",
-                    color: isUp ? "var(--good)" : "var(--bad)",
-                  }}>
-                    {isUp ? "+" : "−"}{opt.poin} poin
-                  </span>
-                )}
+                <span style={{
+                  fontSize: 11.5, fontWeight: 600, padding: "1px 7px", borderRadius: 4, flexShrink: 0,
+                  background: bg, color,
+                }}>
+                  {opt.poinMin}–{opt.poinMax} poin
+                </span>
               </button>
             );
           })}
@@ -131,63 +122,61 @@ export function RecordModalButton({
 
   const sorted = useMemo(() => [...students].sort((a, b) => a.nama.localeCompare(b.nama, "id")), [students]);
 
-  const lists = useMemo(() => ({
-    pelanggaran: kategoriPelanggaran.length > 0 ? kategoriPelanggaran : FALLBACK_PEL,
-    prestasi:    kategoriPrestasi.length    > 0 ? kategoriPrestasi    : FALLBACK_PRE,
-  }), [kategoriPelanggaran, kategoriPrestasi]);
+  const pelList = kategoriPelanggaran.length > 0 ? kategoriPelanggaran : FALLBACK_PEL;
+  const preList = kategoriPrestasi.length > 0 ? kategoriPrestasi : FALLBACK_PRE;
 
   const [siswaId, setSiswaId]       = useState(presetStudentId || sorted[0]?.id || "");
   const [jenis, setJenis]           = useState<"pelanggaran" | "prestasi">("pelanggaran");
-  const [selectedId, setSelectedId] = useState("");
-  const [otherNama, setOtherNama]   = useState("");
-  const [poin, setPoin]             = useState("");
   const [keterangan, setKeterangan] = useState("");
   const [tanggal, setTanggal]       = useState(todayISO());
 
-  const up      = jenis === "prestasi";
-  const isOther = selectedId === OTHER_ID;
-  const list    = lists[jenis];
+  const [kat, setKat]     = useState<KatOpt | null>(null);
+  const [nama, setNama]   = useState("");
+  const [poin, setPoin]   = useState("");
+
+  const up   = jenis === "prestasi";
+  const list = up ? preList : pelList;
 
   function reset() {
     setSiswaId(presetStudentId || sorted[0]?.id || "");
     setJenis("pelanggaran");
-    setSelectedId("");
-    setOtherNama("");
-    setPoin("");
+    setKat(null); setNama(""); setPoin("");
     setKeterangan("");
     setTanggal(todayISO());
   }
 
   function switchJenis(j: "pelanggaran" | "prestasi") {
     setJenis(j);
-    setSelectedId("");
-    setOtherNama("");
-    setPoin("");
+    setKat(null); setNama(""); setPoin("");
   }
 
-  function handleKatSelect(id: string, katPoin: number) {
-    setSelectedId(id);
-    setPoin(id === OTHER_ID ? "" : String(katPoin));
+  function handleSelect(opt: KatOpt) {
+    setKat(opt);
+    setPoin(String(opt.poinMin));
   }
 
-  const kategoriNama = isOther
-    ? otherNama.trim()
-    : list.find(k => k.id === selectedId)?.nama ?? "";
+  const poinNum   = parseInt(poin, 10);
+  const poinValid = !!kat && Number.isFinite(poinNum) && poinNum >= kat.poinMin && poinNum <= kat.poinMax;
 
   function submit() {
-    const mag = Math.abs(parseInt(poin, 10) || 0);
-    if (!siswaId)        { toast("Pilih siswa terlebih dahulu.", "bad"); return; }
-    if (!selectedId)     { toast("Pilih kategori terlebih dahulu.", "bad"); return; }
-    if (!kategoriNama)   { toast("Masukkan nama kategori.", "bad"); return; }
-    if (mag <= 0)        { toast("Isi jumlah poin lebih dari 0.", "bad"); return; }
+    if (!siswaId)         { toast("Pilih siswa terlebih dahulu.", "bad"); return; }
+    if (!kat)             { toast(`Pilih kategori ${up ? "prestasi" : "pelanggaran"} terlebih dahulu.`, "bad"); return; }
+    if (!nama.trim())     { toast(`Masukkan nama ${up ? "prestasi" : "pelanggaran"}.`, "bad"); return; }
+    if (!poinValid)       { toast(`Poin harus antara ${kat.poinMin}–${kat.poinMax} untuk kategori "${kat.nama}".`, "bad"); return; }
 
     start(async () => {
       const res = await addRecordAction({
-        siswaId, jenis: up ? "PRESTASI" : "PELANGGARAN",
-        kategori: kategoriNama, poin: mag, keterangan, tanggal,
+        siswaId,
+        jenis: up ? "PRESTASI" : "PELANGGARAN",
+        kategori: nama.trim(),
+        kategoriPelanggaranId: up ? undefined : kat.id,
+        kategoriPrestasiId: up ? kat.id : undefined,
+        poin: poinNum,
+        keterangan,
+        tanggal,
       });
       if (res.ok) {
-        toast((up ? "Prestasi" : "Pelanggaran") + " tercatat · " + (up ? "+" : "−") + mag + " poin");
+        toast(`${up ? "Prestasi" : "Pelanggaran"} tercatat · ${up ? "+" : "−"}${poinNum} poin`);
         setOpen(false);
         router.refresh();
       } else {
@@ -213,7 +202,7 @@ export function RecordModalButton({
           footer={
             <>
               <button className="btn" onClick={() => setOpen(false)}>Batal</button>
-              <button className="btn btn-accent" onClick={submit} disabled={pending}>
+              <button className="btn btn-accent" onClick={submit} disabled={pending || (!!kat && !poinValid)}>
                 {pending ? "Menyimpan…" : "Simpan Catatan"}
               </button>
             </>
@@ -239,51 +228,50 @@ export function RecordModalButton({
           </div>
 
           <div className="field">
-            <label>Kategori</label>
+            <label>Kategori {up ? "Prestasi" : "Pelanggaran"}</label>
             <KatCombo
               list={list}
-              selectedId={selectedId}
-              onSelect={handleKatSelect}
-              isUp={up}
+              selectedId={kat?.id ?? ""}
+              onSelect={handleSelect}
+              bg={up ? "var(--good-bg)" : "var(--bad-bg)"}
+              color={up ? "var(--good)" : "var(--bad)"}
             />
           </div>
 
-          {isOther ? (
+          {kat && (
             <>
               <div className="field">
-                <label>Nama Kategori</label>
+                <label>Nama {up ? "Prestasi" : "Pelanggaran"}</label>
                 <input
                   type="text"
-                  placeholder={up ? "Contoh: Juara lomba sains" : "Contoh: Membolos pelajaran"}
-                  value={otherNama}
-                  onChange={e => setOtherNama(e.target.value)}
+                  placeholder={up ? "Contoh: Juara lomba sains" : "Contoh: Tidak memakai dasi"}
+                  value={nama}
+                  onChange={e => setNama(e.target.value)}
                   autoFocus
                 />
               </div>
               <div className="field">
-                <label>Poin</label>
+                <label>Poin ({kat.poinMin}–{kat.poinMax})</label>
                 <div className="poin-row">
                   <span className={"sign " + (up ? "up" : "down")}>{up ? "+" : "−"}</span>
                   <input
                     type="number"
-                    min={1}
+                    min={kat.poinMin}
+                    max={kat.poinMax}
                     step={1}
                     value={poin}
                     onChange={e => setPoin(e.target.value)}
                     style={{ flex: 1 }}
-                    placeholder="0"
+                    placeholder={String(kat.poinMin)}
                   />
                 </div>
+                {!poinValid && poin !== "" && (
+                  <p style={{ fontSize: 12, color: "var(--bad)", marginTop: 6 }}>
+                    Poin harus antara {kat.poinMin}–{kat.poinMax}.
+                  </p>
+                )}
               </div>
             </>
-          ) : selectedId && (
-            <div style={{
-              padding: "9px 12px", borderRadius: 8,
-              background: up ? "var(--good-bg)" : "var(--bad-bg)",
-              fontSize: 13, color: up ? "var(--good)" : "var(--bad)", fontWeight: 500,
-            }}>
-              Poin siswa akan <b>{up ? "bertambah" : "berkurang"} {poin} poin</b>
-            </div>
           )}
 
           <div className="field">

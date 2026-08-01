@@ -1,16 +1,19 @@
 import { logoutAction } from "@/app/actions";
 import { IconLogout } from "./icons";
+import { GantiPasswordSiswaButton } from "./GantiPasswordSiswaButton";
 
 export function Topbar({
   roleLabel,
   name,
   sub,
   dotCls,
+  canGantiPassword = false,
 }: {
   roleLabel: string;
   name: string;
   sub: string;
   dotCls: string;
+  canGantiPassword?: boolean;
 }) {
   const initials = name
     .split(" ")
@@ -48,6 +51,8 @@ export function Topbar({
               <span className="user-sub">{sub}</span>
             </div>
           </div>
+
+          {canGantiPassword && <GantiPasswordSiswaButton />}
 
           <form action={logoutAction}>
             <button type="submit" className="topbar-logout" title="Keluar">
