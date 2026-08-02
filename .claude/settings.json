@@ -52,10 +52,12 @@
       "Bash(node scratchpad_test_pelanggaran.mjs)",
       "Bash(node scratchpad_visual2.mjs)",
       "Bash(node scratchpad_test_both.mjs)",
-      "Bash(node scratchpad_verify_prestasi.mjs)"
+      "Bash(node scratchpad_verify_prestasi.mjs)",
+      "Bash(cd /Users/user/Roy/sma-warga *)"
     ],
     "additionalDirectories": [
-      "/Users/user/Roy/sma-warga/src/app/(app)/ekskul"
+      "/Users/user/Roy/sma-warga/src/app/(app)/ekskul",
+      "/Users/user/Roy/sma-warga"
     ]
   }
 }
