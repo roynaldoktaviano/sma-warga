@@ -10,6 +10,22 @@ const prisma = new PrismaClient({
   datasources: { db: { url: process.env.DIRECT_URL ?? process.env.DATABASE_URL } },
 });
 
+// ── Kategori Pelanggaran & Prestasi — range poin (min–max) ────
+const KATEGORI_PELANGGARAN = [
+  { nama: "Kerapihan dan Pakaian", poinMin: 1, poinMax: 10 },
+  { nama: "Kedisiplinan Waktu", poinMin: 1, poinMax: 15 },
+  { nama: "Sikap dan Sopan Santun", poinMin: 5, poinMax: 20 },
+  { nama: "Ketertiban Belajar", poinMin: 5, poinMax: 20 },
+  { nama: "Pelanggaran Berat", poinMin: 20, poinMax: 50 },
+];
+const KATEGORI_PRESTASI = [
+  { nama: "Kedisiplinan dan Keteladanan", poinMin: 5, poinMax: 15 },
+  { nama: "Organisasi dan Kepemimpinan", poinMin: 5, poinMax: 20 },
+  { nama: "Non-Akademik / Bakat Minat", poinMin: 10, poinMax: 25 },
+  { nama: "Akademik", poinMin: 10, poinMax: 30 },
+  { nama: "Prestasi Tingkat Nasional/Internasional", poinMin: 30, poinMax: 50 },
+];
+
 // ── Akun Staf ────────────────────────────────────────────────
 const STAFF = [
   { nama: "Budi Santoso, S.Pd.",      username: "kesiswaan", password: "kesiswaan123", role: Role.KESISWAAN   },
@@ -159,10 +175,19 @@ async function main() {
   await prisma.prestasi.deleteMany();
   await prisma.siswa.deleteMany();
   await prisma.staff.deleteMany();
+  await prisma.kategoriPelanggaran.deleteMany();
+  await prisma.kategoriPrestasi.deleteMany();
   await prisma.sekolah.deleteMany();
 
   const sekolah = await prisma.sekolah.create({
     data: { nama: "SMP Warga Surakarta" },
+  });
+
+  await prisma.kategoriPelanggaran.createMany({
+    data: KATEGORI_PELANGGARAN.map(k => ({ ...k, sekolahId: sekolah.id })),
+  });
+  await prisma.kategoriPrestasi.createMany({
+    data: KATEGORI_PRESTASI.map(k => ({ ...k, sekolahId: sekolah.id })),
   });
 
   // Buat semua akun staf

@@ -2,23 +2,15 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { KATEGORI_PELANGGARAN, KATEGORI_PRESTASI } from "@/lib/points";
 import { todayISO } from "@/lib/format";
 import { addRecordAction } from "@/app/actions";
 import { ModalShell } from "./ModalShell";
 import { StudentSelect } from "./StudentSelect";
 import { toast } from "./Toaster";
-import { IconPlus, IconUp, IconDown } from "./icons";
+import { IconPlus, IconUp, IconDown, IconWarn } from "./icons";
 
 type StudentOpt = { id: string; nama: string; kelas: string };
 type KatOpt = { id: string; nama: string; poinMin: number; poinMax: number };
-
-const FALLBACK_PEL: KatOpt[] = KATEGORI_PELANGGARAN.map(k => ({
-  id: k.label, nama: k.label, poinMin: k.poinMin, poinMax: k.poinMax,
-}));
-const FALLBACK_PRE: KatOpt[] = KATEGORI_PRESTASI.map(k => ({
-  id: k.label, nama: k.label, poinMin: k.poinMin, poinMax: k.poinMax,
-}));
 
 // ---------- Searchable combobox — kategori = range poin ----------
 function KatCombo({ list, selectedId, onSelect, bg, color }: {
@@ -122,8 +114,8 @@ export function RecordModalButton({
 
   const sorted = useMemo(() => [...students].sort((a, b) => a.nama.localeCompare(b.nama, "id")), [students]);
 
-  const pelList = kategoriPelanggaran.length > 0 ? kategoriPelanggaran : FALLBACK_PEL;
-  const preList = kategoriPrestasi.length > 0 ? kategoriPrestasi : FALLBACK_PRE;
+  const pelList = kategoriPelanggaran;
+  const preList = kategoriPrestasi;
 
   const [siswaId, setSiswaId]       = useState(presetStudentId || sorted[0]?.id || "");
   const [jenis, setJenis]           = useState<"pelanggaran" | "prestasi">("pelanggaran");
@@ -229,13 +221,26 @@ export function RecordModalButton({
 
           <div className="field">
             <label>Kategori {up ? "Prestasi" : "Pelanggaran"}</label>
-            <KatCombo
-              list={list}
-              selectedId={kat?.id ?? ""}
-              onSelect={handleSelect}
-              bg={up ? "var(--good-bg)" : "var(--bad-bg)"}
-              color={up ? "var(--good)" : "var(--bad)"}
-            />
+            {list.length === 0 ? (
+              <div style={{
+                display: "flex", alignItems: "center", gap: 8, padding: "9px 12px", borderRadius: 8,
+                background: "var(--warn-bg)", color: "var(--warn)", fontSize: 12.5,
+              }}>
+                <IconWarn />
+                <span>
+                  Belum ada kategori {up ? "prestasi" : "pelanggaran"}. Tambahkan dulu di menu Master Data
+                  &nbsp;→&nbsp;{up ? "Prestasi" : "Pelanggaran"}.
+                </span>
+              </div>
+            ) : (
+              <KatCombo
+                list={list}
+                selectedId={kat?.id ?? ""}
+                onSelect={handleSelect}
+                bg={up ? "var(--good-bg)" : "var(--bad-bg)"}
+                color={up ? "var(--good)" : "var(--bad)"}
+              />
+            )}
           </div>
 
           {kat && (

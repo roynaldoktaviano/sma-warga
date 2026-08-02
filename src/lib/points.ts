@@ -34,26 +34,6 @@ export function parentLine(key: StatusKey): string {
   }
 }
 
-// Kategori pelanggaran & prestasi sekarang berupa RANGE poin (min–max), bukan poin tetap.
-// Guru memilih kategori ini lalu mengisi sendiri nama kejadian & poin di dalam rentangnya.
-export type KategoriRangeItem = { label: string; poinMin: number; poinMax: number };
-
-export const KATEGORI_PELANGGARAN: KategoriRangeItem[] = [
-  { label: "Kerapihan dan Pakaian", poinMin: 1, poinMax: 10 },
-  { label: "Kedisiplinan Waktu", poinMin: 1, poinMax: 15 },
-  { label: "Sikap dan Sopan Santun", poinMin: 5, poinMax: 20 },
-  { label: "Ketertiban Belajar", poinMin: 5, poinMax: 20 },
-  { label: "Pelanggaran Berat", poinMin: 20, poinMax: 50 },
-];
-
-export const KATEGORI_PRESTASI: KategoriRangeItem[] = [
-  { label: "Kedisiplinan dan Keteladanan", poinMin: 5, poinMax: 15 },
-  { label: "Organisasi dan Kepemimpinan", poinMin: 5, poinMax: 20 },
-  { label: "Non-Akademik / Bakat Minat", poinMin: 10, poinMax: 25 },
-  { label: "Akademik", poinMin: 10, poinMax: 30 },
-  { label: "Prestasi Tingkat Nasional/Internasional", poinMin: 30, poinMax: 50 },
-];
-
 // --- perhitungan dari daftar catatan (poin sudah bertanda) ---
 // Hanya catatan VERIFIED yang mempengaruhi poin
 export type CatatanLike = { poin: number; statusVerif?: string };
