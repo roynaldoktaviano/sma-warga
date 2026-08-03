@@ -47,6 +47,7 @@ model Sekolah {
   kategoriPelanggaran     KategoriPelanggaran[]
   kategoriPrestasi        KategoriPrestasi[]
   mataPelajaran           MataPelajaran[]
+  presensiKelasLog        PresensiKelasLog[]
   createdAt               DateTime              @default(now())
 }
 
@@ -243,6 +244,23 @@ model Presensi {
 
   @@unique([siswaId, tanggal])
   @@index([siswaId])
+  @@index([tanggal])
+}
+
+// Penanda "kelas X sudah diabsen tanggal Y" — perlu terpisah dari Presensi karena
+// status HADIR sengaja tidak disimpan sebagai baris (supaya tabel Presensi tidak
+// membengkak), jadi tanpa ini tidak bisa dibedakan "belum diabsen" vs "semua hadir".
+model PresensiKelasLog {
+  id           String   @id @default(cuid())
+  kelas        String
+  tanggal      DateTime @db.Date
+  pencatatId   String?
+  pencatatNama String
+  sekolah      Sekolah  @relation(fields: [sekolahId], references: [id], onDelete: Cascade)
+  sekolahId    String
+  createdAt    DateTime @default(now())
+
+  @@unique([sekolahId, kelas, tanggal])
   @@index([tanggal])
 }
 

@@ -277,6 +277,7 @@ export async function addPresensiAction(input: {
 
 // ---------- Presensi per kelas (bulk) ----------
 export async function addPresensiKelasAction(
+  kelas: string,
   tanggal: string,
   entries: { siswaId: string; status: "HADIR" | "IZIN" | "SAKIT" | "ALPA" }[]
 ): Promise<ActionResult> {
@@ -284,27 +285,34 @@ export async function addPresensiKelasAction(
   if (!canInput(session.role))
     return { ok: false, error: "Hanya Kesiswaan, Kepsek, atau Guru yang bisa mencatat presensi." };
   if (!tanggal) return { ok: false, error: "Tanggal wajib diisi." };
+  if (entries.length === 0) return { ok: false, error: "Tidak ada siswa untuk dicatat." };
   const tgl = new Date(tanggal + "T00:00:00Z");
 
-  for (const en of entries) {
-    if (en.status === "HADIR") {
-      // HADIR = hapus record (siswa dianggap hadir jika tidak ada record)
-      await prisma.presensi.deleteMany({
-        where: { siswaId: en.siswaId, tanggal: tgl },
-      });
-    } else {
-      await prisma.presensi.upsert({
-        where: { siswaId_tanggal: { siswaId: en.siswaId, tanggal: tgl } },
-        create: {
-          siswaId: en.siswaId, tanggal: tgl, status: en.status as "IZIN" | "SAKIT" | "ALPA",
-          pencatatId: session.sub, pencatatNama: session.name,
-        },
-        update: {
-          status: en.status as "IZIN" | "SAKIT" | "ALPA",
-          pencatatId: session.sub, pencatatNama: session.name,
-        },
-      });
-    }
+  const nonHadir = entries.filter(e => e.status !== "HADIR");
+
+  // Hapus dulu record lama utk semua siswa di tanggal ini (HADIR = tidak ada record),
+  // lalu createMany utk yang tidak hadir — 2 query total, bukan 1 per siswa.
+  await prisma.presensi.deleteMany({
+    where: { tanggal: tgl, siswaId: { in: entries.map(e => e.siswaId) } },
+  });
+
+  if (nonHadir.length > 0) {
+    await prisma.presensi.createMany({
+      data: nonHadir.map(e => ({
+        siswaId: e.siswaId, tanggal: tgl, status: e.status as "IZIN" | "SAKIT" | "ALPA",
+        pencatatId: session.sub, pencatatNama: session.name,
+      })),
+    });
+  }
+
+  // Penanda "kelas ini sudah diabsen hari ini" — terpisah dari status HADIR yang tidak disimpan
+  const sekolah = await prisma.siswa.findFirst({ where: { id: entries[0].siswaId }, select: { sekolahId: true } });
+  if (sekolah) {
+    await prisma.presensiKelasLog.upsert({
+      where: { sekolahId_kelas_tanggal: { sekolahId: sekolah.sekolahId, kelas, tanggal: tgl } },
+      create: { kelas, tanggal: tgl, sekolahId: sekolah.sekolahId, pencatatId: session.sub, pencatatNama: session.name },
+      update: { pencatatId: session.sub, pencatatNama: session.name },
+    });
   }
 
   revalidatePath("/presensi");

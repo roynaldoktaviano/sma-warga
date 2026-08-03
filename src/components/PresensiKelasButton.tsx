@@ -57,6 +57,7 @@ export function PresensiKelasButton({
   function submit() {
     start(async () => {
       const res = await addPresensiKelasAction(
+        kelas,
         tanggal,
         siswa.map(s => ({ siswaId: s.id, status: entries[s.id] ?? "HADIR" }))
       );

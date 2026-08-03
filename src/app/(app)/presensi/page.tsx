@@ -22,7 +22,7 @@ export default async function PresensiPage() {
     String(new Date().getMonth() + 1).padStart(2, "0") + "-01T00:00:00Z"
   );
 
-  const [semuaSiswa, presensiHariIni, presensiBulanIni] = await Promise.all([
+  const [semuaSiswa, presensiHariIni, presensiBulanIni, kelasSudahDiabsen] = await Promise.all([
     prisma.siswa.findMany({
       where: { status: "AKTIF" },
       orderBy: [{ kelas: "asc" }, { nama: "asc" }],
@@ -37,7 +37,13 @@ export default async function PresensiPage() {
       include: { siswa: { select: { nama: true, kelas: true } } },
       orderBy: [{ tanggal: "desc" }, { createdAt: "desc" }],
     }),
+    prisma.presensiKelasLog.findMany({
+      where: { tanggal: todayDate },
+      select: { kelas: true, pencatatNama: true },
+    }),
   ]);
+
+  const diabsenMap = new Map(kelasSudahDiabsen.map(l => [l.kelas, l.pencatatNama]));
 
   // Kelompokkan siswa per kelas
   const kelasList = new Map<string, typeof semuaSiswa>();
@@ -104,11 +110,30 @@ export default async function PresensiPage() {
           const tidakHadir = siswa.filter(s => hariIniMap[s.id]).length;
           const hadir = siswa.length - tidakHadir;
           const pct = Math.round((hadir / siswa.length) * 100);
+          const sudahDiabsen = diabsenMap.get(kelas);
           return (
             <div key={kelas} className="kelas-card">
               <div className="kelas-card-top">
                 <div>
-                  <div className="kelas-card-name">{kelas}</div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <div className="kelas-card-name">{kelas}</div>
+                    {sudahDiabsen ? (
+                      <span title={`Diabsen oleh ${sudahDiabsen}`} style={{
+                        display: "inline-flex", alignItems: "center", gap: 4,
+                        fontSize: 10.5, fontWeight: 600, padding: "2px 8px", borderRadius: 20,
+                        background: "var(--good-bg)", color: "var(--good)",
+                      }}>
+                        ✓ Sudah diabsen
+                      </span>
+                    ) : (
+                      <span style={{
+                        fontSize: 10.5, fontWeight: 600, padding: "2px 8px", borderRadius: 20,
+                        background: "var(--line-soft)", color: "var(--ink-faint)",
+                      }}>
+                        Belum diabsen
+                      </span>
+                    )}
+                  </div>
                   <div className="kelas-card-count">{siswa.length} siswa</div>
                 </div>
                 <PresensiKelasButton
