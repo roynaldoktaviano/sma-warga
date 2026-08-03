@@ -59,7 +59,8 @@
       "Bash(timeout 90 node scratchpad_test_pres2.mjs)",
       "Bash(node scratchpad_test_pres2.mjs)",
       "Bash(node scratchpad_test_pres3.mjs)",
-      "Bash(node scratchpad_test_pres4.mjs)"
+      "Bash(node scratchpad_test_pres4.mjs)",
+      "Bash(node scratchpad_test_role.mjs)"
     ],
     "additionalDirectories": [
       "/Users/user/Roy/sma-warga/src/app/(app)/ekskul",
