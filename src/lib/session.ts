@@ -11,6 +11,7 @@ export type Session = {
   sub: string; // id user (Staff.id atau Siswa.id)
   kind: SessionKind;
   role?: SessionRole; // hanya untuk staff
+  ekskulExtra?: boolean; // akses tambahan presensi ekskul di luar role utama (hanya staff)
   name: string; // nama tampilan
 };
 
@@ -25,7 +26,7 @@ function secret(): Uint8Array {
 }
 
 export async function signSession(payload: Session): Promise<string> {
-  return new SignJWT({ kind: payload.kind, role: payload.role, name: payload.name })
+  return new SignJWT({ kind: payload.kind, role: payload.role, ekskulExtra: payload.ekskulExtra, name: payload.name })
     .setProtectedHeader({ alg: ALG })
     .setSubject(payload.sub)
     .setIssuedAt()
@@ -41,6 +42,7 @@ export async function verifySessionToken(token: string): Promise<Session | null>
       sub: payload.sub,
       kind: payload.kind as SessionKind,
       role: payload.role as SessionRole | undefined,
+      ekskulExtra: payload.ekskulExtra as boolean | undefined,
       name: (payload.name as string) ?? "",
     };
   } catch {

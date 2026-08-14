@@ -33,6 +33,7 @@ export default async function GuruPage() {
         nama: true,
         username: true,
         role: true,
+        ekskulExtra: true,
         waliKelas: { select: { nama: true }, take: 3 },
         ekskulGuru: { include: { ekskul: { select: { nama: true } } }, take: 4 },
         mapel: {
@@ -89,9 +90,14 @@ export default async function GuruPage() {
                   <div style={{ fontSize: 11.5, color: "var(--ink-faint)", fontFamily: "var(--mono)" }}>@{s.username}</div>
                 </div>
               </div>
-              <span className={"guru-role-badge " + (ROLE_COLOR[s.role] ?? "")}>
-                {ROLE_LABEL[s.role as keyof typeof ROLE_LABEL] ?? s.role}
-              </span>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                <span className={"guru-role-badge " + (ROLE_COLOR[s.role] ?? "")}>
+                  {ROLE_LABEL[s.role as keyof typeof ROLE_LABEL] ?? s.role}
+                </span>
+                {s.ekskulExtra && (
+                  <span className="guru-role-badge guru-role--ekskul">+ Ekskul</span>
+                )}
+              </div>
               <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                 {s.mapel.length === 0
                   ? <span style={{ fontSize: 12.5, color: "var(--ink-faint)", fontStyle: "italic" }}>—</span>
@@ -123,7 +129,7 @@ export default async function GuruPage() {
               </div>
               {isAdmin && (
                 <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
-                  <EditStaffModalButton staff={{ id: s.id, nama: s.nama, username: s.username, role: s.role }} />
+                  <EditStaffModalButton staff={{ id: s.id, nama: s.nama, username: s.username, role: s.role, ekskulExtra: s.ekskulExtra }} />
                   <DeleteStaffButton id={s.id} isSelf={s.id === session.sub} />
                 </div>
               )}

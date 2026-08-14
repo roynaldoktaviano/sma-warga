@@ -15,7 +15,7 @@ export async function loginAction(
   // 1) coba sebagai staff (Kesiswaan/BKA)
   const staff = await prisma.staff.findUnique({ where: { username: u } });
   if (staff && (await bcrypt.compare(password, staff.password))) {
-    await createSession({ sub: staff.id, kind: "staff", role: staff.role, name: staff.nama });
+    await createSession({ sub: staff.id, kind: "staff", role: staff.role, ekskulExtra: staff.ekskulExtra, name: staff.nama });
     const isGuru = staff.role === "GURU" || staff.role === "GURU_BK";
     redirect(isGuru ? "/presensi" : "/dashboard");
   }

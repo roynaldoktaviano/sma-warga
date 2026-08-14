@@ -133,6 +133,7 @@ model Staff {
   username    String       @unique
   password    String
   role        Role
+  ekskulExtra Boolean      @default(false) // akses tambahan presensi ekskul di luar role utama
   sekolah     Sekolah      @relation(fields: [sekolahId], references: [id], onDelete: Cascade)
   sekolahId   String
   catatan         Catatan[]
@@ -214,7 +215,7 @@ model Catatan {
   pencatatId   String?
   pencatatNama String
 
-  // Verifikasi — wajib disetujui Waka Kesiswaan DAN Kepsek
+  // Verifikasi — cukup salah satu, Waka Kesiswaan ATAU Kepsek
   statusVerif        String    @default("PENDING") // PENDING | VERIFIED | REJECTED
   verifikasiWaka     DateTime?
   verifikasiWakaId   String?

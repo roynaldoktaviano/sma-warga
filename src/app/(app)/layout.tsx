@@ -1,6 +1,6 @@
 export const dynamic = "force-dynamic";
 
-import { requireSession, ROLE_LABEL } from "@/lib/auth";
+import { requireSession, ROLE_LABEL, canViewEkskul } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Topbar } from "@/components/Topbar";
 import { Sidebar } from "@/components/Sidebar";
@@ -13,8 +13,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   let name: string;
   let sub: string;
 
-  // GURU hanya tampilkan menu Ekskul kalau memang ditugaskan di suatu ekskul
-  const hasEkskul = isStaff && session.role === "GURU"
+  // Guru tanpa akses ekskul dari role/flag hanya tampilkan menu Ekskul kalau memang ditugaskan di suatu ekskul
+  const hasEkskul = isStaff && !canViewEkskul(session.role, session.ekskulExtra)
     ? (await prisma.ekskulGuru.count({ where: { staffId: session.sub } })) > 0
     : false;
 
@@ -35,7 +35,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   if (isStaff) {
     return (
       <div className="app-root">
-        <Sidebar name={name} sub={sub} initials={initials} role={session.role ?? ""} hasEkskul={hasEkskul} />
+        <Sidebar name={name} sub={sub} initials={initials} role={session.role ?? ""} ekskulExtra={session.ekskulExtra} hasEkskul={hasEkskul} />
         <main className="app-main">{children}</main>
       </div>
     );

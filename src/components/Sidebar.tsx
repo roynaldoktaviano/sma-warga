@@ -11,16 +11,16 @@ import {
 } from "./icons";
 import { canViewTatib, canViewEkskul, canManage, canVerify } from "@/lib/roles";
 
-type Props = { name: string; sub: string; initials: string; role: string; hasEkskul?: boolean };
+type Props = { name: string; sub: string; initials: string; role: string; ekskulExtra?: boolean; hasEkskul?: boolean };
 
 const TATIB_PATHS = ["/dashboard", "/catatan", "/prestasi"];
 
-export function Sidebar({ name, sub, initials, role, hasEkskul = false }: Props) {
+export function Sidebar({ name, sub, initials, role, ekskulExtra = false, hasEkskul = false }: Props) {
   const path = usePathname();
   function active(href: string) { return path === href || path.startsWith(href + "/"); }
 
   const showTatib    = canViewTatib(role);
-  const showEkskul   = canViewEkskul(role) || hasEkskul;
+  const showEkskul   = canViewEkskul(role, ekskulExtra) || hasEkskul;
   const showSettings = canManage(role);
   const showAdmin    = canVerify(role);
 

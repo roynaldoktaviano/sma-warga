@@ -3,26 +3,35 @@ import { prisma } from "@/lib/prisma";
 import { fmtTanggal } from "@/lib/format";
 import { DeletePresensiButton } from "@/components/DeletePresensiButton";
 import { PresensiKelasButton } from "@/components/PresensiKelasButton";
+import { ExportPresensiButton } from "@/components/ExportPresensiButton";
+import { PresensiDatePicker } from "@/components/PresensiDatePicker";
 import { IconCalendar, IconUsers, IconX, IconWarn } from "@/components/icons";
 
 export const dynamic = "force-dynamic";
 
-const STATUS_LABEL: Record<string, string> = { IZIN: "Izin", SAKIT: "Sakit", ALPA: "Alpa" };
-const STATUS_BG: Record<string, string>    = { IZIN: "#fffbeb", SAKIT: "#eff6ff", ALPA: "#fff5f5" };
-const STATUS_COLOR: Record<string, string> = { IZIN: "var(--warn)", SAKIT: "#2563eb", ALPA: "var(--bad)" };
+const STATUS_LABEL: Record<string, string> = { HADIR: "Hadir", IZIN: "Izin", SAKIT: "Sakit", ALPA: "Alpa" };
+const STATUS_BG: Record<string, string>    = { HADIR: "var(--good-bg)", IZIN: "#fffbeb", SAKIT: "#eff6ff", ALPA: "#fff5f5" };
+const STATUS_COLOR: Record<string, string> = { HADIR: "var(--good)", IZIN: "var(--warn)", SAKIT: "#2563eb", ALPA: "var(--bad)" };
 
-export default async function PresensiPage() {
+export default async function PresensiPage({
+  searchParams,
+}: {
+  searchParams?: { tanggal?: string };
+}) {
   await requireStaff();
 
   const today = new Date().toISOString().slice(0, 10);
   const todayDate = new Date(today + "T00:00:00Z");
+
+  const tanggalHarian = /^\d{4}-\d{2}-\d{2}$/.test(searchParams?.tanggal ?? "") ? searchParams!.tanggal! : today;
+  const tanggalHarianDate = new Date(tanggalHarian + "T00:00:00Z");
 
   const bulanAwal = new Date(
     new Date().getFullYear() + "-" +
     String(new Date().getMonth() + 1).padStart(2, "0") + "-01T00:00:00Z"
   );
 
-  const [semuaSiswa, presensiHariIni, presensiBulanIni, kelasSudahDiabsen] = await Promise.all([
+  const [semuaSiswa, presensiHariIni, presensiBulanIni, kelasSudahDiabsen, presensiHarian] = await Promise.all([
     prisma.siswa.findMany({
       where: { status: "AKTIF" },
       orderBy: [{ kelas: "asc" }, { nama: "asc" }],
@@ -41,9 +50,17 @@ export default async function PresensiPage() {
       where: { tanggal: todayDate },
       select: { kelas: true, pencatatNama: true },
     }),
+    tanggalHarian === today
+      ? Promise.resolve(null) // sudah ada di presensiHariIni, tidak perlu query ulang
+      : prisma.presensi.findMany({
+          where: { tanggal: tanggalHarianDate },
+          select: { siswaId: true, status: true },
+        }),
   ]);
 
   const diabsenMap = new Map(kelasSudahDiabsen.map(l => [l.kelas, l.pencatatNama]));
+  const harianMap: Record<string, string> = {};
+  for (const p of presensiHarian ?? presensiHariIni) harianMap[p.siswaId] = p.status;
 
   // Kelompokkan siswa per kelas
   const kelasList = new Map<string, typeof semuaSiswa>();
@@ -70,6 +87,9 @@ export default async function PresensiPage() {
         <div>
           <div className="eyebrow">Presensi</div>
           <h1 className="page-title">Kehadiran Siswa</h1>
+        </div>
+        <div className="page-actions">
+          <ExportPresensiButton />
         </div>
       </div>
 
@@ -174,6 +194,39 @@ export default async function PresensiPage() {
             </div>
           );
         })}
+      </div>
+
+      {/* Riwayat Harian — status semua siswa di tanggal tertentu */}
+      <div style={{ marginTop: 28 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+          <div className="section-label">Riwayat Harian</div>
+          <PresensiDatePicker value={tanggalHarian} />
+        </div>
+        <p style={{ fontSize: 12.5, color: "var(--ink-faint)", margin: "4px 0 12px" }}>
+          Status seluruh siswa pada {fmtTanggal(tanggalHarianDate)} — {semuaSiswa.length - Object.keys(harianMap).length} hadir,{" "}
+          {Object.keys(harianMap).length} tidak hadir.
+        </p>
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          {kelasArr.map(([kelas, siswa]) => (
+            <div key={kelas} className="card card-pad">
+              <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 10 }}>{kelas}</div>
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                {siswa.map(s => {
+                  const st = harianMap[s.id] ?? "HADIR";
+                  return (
+                    <span key={s.id} style={{
+                      fontSize: 11, padding: "2px 8px", borderRadius: 20,
+                      background: STATUS_BG[st], color: STATUS_COLOR[st],
+                      fontWeight: st === "HADIR" ? 400 : 600,
+                    }}>
+                      {s.nama.split(" ")[0]} · {STATUS_LABEL[st]}
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Riwayat absensi bulan ini */}

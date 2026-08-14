@@ -60,7 +60,12 @@
       "Bash(node scratchpad_test_pres2.mjs)",
       "Bash(node scratchpad_test_pres3.mjs)",
       "Bash(node scratchpad_test_pres4.mjs)",
-      "Bash(node scratchpad_test_role.mjs)"
+      "Bash(node scratchpad_test_role.mjs)",
+      "Bash(node scratchpad_test_ekskul.mjs)",
+      "Bash(node scratchpad_test_rekap.mjs)",
+      "Bash(node scratchpad_verify_untouched.mjs)",
+      "Bash(node scratchpad_test_harian.mjs)",
+      "Bash(npx eslint *)"
     ],
     "additionalDirectories": [
       "/Users/user/Roy/sma-warga/src/app/(app)/ekskul",

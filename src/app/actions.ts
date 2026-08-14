@@ -4,7 +4,7 @@ import bcrypt from "bcryptjs";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { destroySession, requireStaff, canInput, canVerify, canManage } from "@/lib/auth";
+import { destroySession, requireStaff, canInput, canVerify, canManage, canViewTatib } from "@/lib/auth";
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
 
@@ -319,6 +319,52 @@ export async function addPresensiKelasAction(
   return { ok: true };
 }
 
+// ---------- Rekap presensi (untuk export Excel) ----------
+export type RekapPresensiResult =
+  | {
+      ok: true;
+      siswa: { id: string; nama: string; nis: string; kelas: string }[];
+      presensi: { siswaId: string; tanggal: string; status: "IZIN" | "SAKIT" | "ALPA" }[];
+    }
+  | { ok: false; error: string };
+
+export async function getRekapPresensiAction(tanggalMulai: string, tanggalSelesai: string): Promise<RekapPresensiResult> {
+  const session = await requireStaff();
+  if (!canViewTatib(session.role))
+    return { ok: false, error: "Tidak punya akses ke data presensi." };
+  if (!tanggalMulai || !tanggalSelesai) return { ok: false, error: "Tanggal mulai dan selesai wajib diisi." };
+
+  const mulai = new Date(tanggalMulai + "T00:00:00Z");
+  const selesai = new Date(tanggalSelesai + "T00:00:00Z");
+  if (selesai < mulai) return { ok: false, error: "Tanggal selesai harus setelah tanggal mulai." };
+  const hariRange = Math.round((selesai.getTime() - mulai.getTime()) / 86400000) + 1;
+  if (hariRange > 366) return { ok: false, error: "Rentang tanggal maksimal 366 hari." };
+
+  const [siswa, presensi] = await Promise.all([
+    prisma.siswa.findMany({
+      where: { status: "AKTIF" },
+      orderBy: [{ kelas: "asc" }, { nama: "asc" }],
+      select: { id: true, nama: true, nis: true, kelas: true },
+    }),
+    prisma.presensi.findMany({
+      where: { tanggal: { gte: mulai, lte: selesai } },
+      select: { siswaId: true, tanggal: true, status: true },
+    }),
+  ]);
+
+  return {
+    ok: true,
+    siswa,
+    presensi: presensi
+      .filter(p => p.status !== "HADIR")
+      .map(p => ({
+        siswaId: p.siswaId,
+        tanggal: p.tanggal.toISOString().slice(0, 10),
+        status: p.status as "IZIN" | "SAKIT" | "ALPA",
+      })),
+  };
+}
+
 // ---------- Hapus presensi ----------
 export async function deletePresensiAction(id: string): Promise<ActionResult> {
   const session = await requireStaff();
@@ -486,13 +532,8 @@ export async function verifikasiCatatanAction(
     data.verifikasiKepsekNama = session.name;
   }
 
-  // Cek apakah setelah update ini kedua pihak sudah verifikasi
-  const updated = await prisma.catatan.update({ where: { id: catatanId }, data });
-  const wakaOk   = !!(role === "KESISWAAN" ? now : updated.verifikasiWaka);
-  const kepsekOk = !!(role === "KEPSEK"    ? now : updated.verifikasiKepsek);
-  if (wakaOk && kepsekOk) {
-    await prisma.catatan.update({ where: { id: catatanId }, data: { statusVerif: "VERIFIED" } });
-  }
+  // Cukup salah satu pihak (Waka atau Kepsek) yang verifikasi
+  await prisma.catatan.update({ where: { id: catatanId }, data: { ...data, statusVerif: "VERIFIED" } });
 
   revalidatePath("/dashboard");
   revalidatePath(`/siswa/${catatan.siswaId}`);
@@ -581,6 +622,7 @@ export async function addStaffAction(input: {
   username: string;
   password: string;
   role: "KESISWAAN" | "KEPSEK" | "GURU" | "GURU_BK" | "GURU_EKSKUL";
+  ekskulExtra?: boolean;
 }): Promise<ActionResult> {
   const session = await requireStaff();
   if (!canVerify(session.role))
@@ -601,7 +643,10 @@ export async function addStaffAction(input: {
 
   const hash = await bcrypt.hash(password, 10);
   await prisma.staff.create({
-    data: { nama, username, password: hash, role: input.role, sekolahId: sekolah.id },
+    data: {
+      nama, username, password: hash, role: input.role, sekolahId: sekolah.id,
+      ekskulExtra: input.role === "GURU_EKSKUL" ? false : !!input.ekskulExtra,
+    },
   });
 
   revalidatePath("/pengaturan");
@@ -629,6 +674,7 @@ export async function updateStaffAction(input: {
   nama: string;
   username: string;
   role: "KESISWAAN" | "KEPSEK" | "GURU" | "GURU_BK" | "GURU_EKSKUL";
+  ekskulExtra?: boolean;
   password?: string;
 }): Promise<ActionResult> {
   const session = await requireStaff();
@@ -650,8 +696,9 @@ export async function updateStaffAction(input: {
     if (existing) return { ok: false, error: "Username sudah dipakai." };
   }
 
-  const data: { nama: string; username: string; role: typeof input.role; password?: string } = {
-    nama, username, role: input.role,
+  const ekskulExtra = input.role === "GURU_EKSKUL" ? false : !!input.ekskulExtra;
+  const data: { nama: string; username: string; role: typeof input.role; ekskulExtra: boolean; password?: string } = {
+    nama, username, role: input.role, ekskulExtra,
   };
   if (password) data.password = await bcrypt.hash(password, 10);
 
@@ -660,7 +707,7 @@ export async function updateStaffAction(input: {
   // Refresh session kalau admin mengubah akunnya sendiri
   if (input.id === session.sub) {
     const { createSession } = await import("@/lib/auth");
-    await createSession({ sub: session.sub, kind: "staff", role: input.role, name: nama });
+    await createSession({ sub: session.sub, kind: "staff", role: input.role, ekskulExtra, name: nama });
   }
 
   revalidatePath("/guru");
@@ -706,7 +753,7 @@ export async function updateAccountAction(input: {
   // Refresh session kalau nama berubah
   if (data.nama) {
     const { createSession } = await import("@/lib/auth");
-    await createSession({ sub: session.sub, kind: "staff", role: session.role, name: data.nama });
+    await createSession({ sub: session.sub, kind: "staff", role: session.role, ekskulExtra: session.ekskulExtra, name: data.nama });
   }
 
   return { ok: true };
