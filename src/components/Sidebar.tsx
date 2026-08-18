@@ -8,6 +8,7 @@ import {
   IconClipboard, IconCalendar, IconSettings, IconLogout,
   IconUsers, IconBook, IconStar, IconDown, IconTrophy,
   IconGauge, IconChevron, IconGrid, IconFlag, IconUser,
+  IconMenu, IconX,
 } from "./icons";
 import { canViewTatib, canViewEkskul, canManage, canVerify } from "@/lib/roles";
 
@@ -26,13 +27,52 @@ export function Sidebar({ name, sub, initials, role, ekskulExtra = false, hasEks
 
   const tatibActive = TATIB_PATHS.some(p => path === p || path.startsWith(p + "/"));
   const [tatibOpen, setTatibOpen] = useState(tatibActive);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
     if (tatibActive) setTatibOpen(true);
   }, [tatibActive]);
 
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [path]);
+
+  useEffect(() => {
+    document.body.style.overflow = mobileOpen ? "hidden" : "";
+    return () => { document.body.style.overflow = ""; };
+  }, [mobileOpen]);
+
+  function handleNavClick(e: React.MouseEvent) {
+    if ((e.target as HTMLElement).closest("a")) setMobileOpen(false);
+  }
+
   return (
-    <aside className="sidebar">
+    <>
+      {/* Mobile topbar */}
+      <div className="mobile-topbar">
+        <button
+          type="button"
+          className="mobile-topbar-burger"
+          aria-label="Buka menu"
+          aria-expanded={mobileOpen}
+          onClick={() => setMobileOpen(true)}
+        >
+          <IconMenu />
+        </button>
+        <div className="mobile-topbar-brand">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img className="mobile-topbar-logo" src="/logo-smp.jpg" alt="SMP Warga" />
+          <span className="mobile-topbar-name">SMP Warga</span>
+        </div>
+        <div className="mobile-topbar-user">{initials}</div>
+      </div>
+
+      {/* Backdrop */}
+      {mobileOpen && (
+        <div className="sidebar-backdrop" onClick={() => setMobileOpen(false)} />
+      )}
+
+      <aside className={"sidebar" + (mobileOpen ? " sidebar--open" : "")}>
 
       {/* Brand */}
       <div className="sidebar-brand">
@@ -42,10 +82,18 @@ export function Sidebar({ name, sub, initials, role, ekskulExtra = false, hasEks
           <div className="sidebar-brand-name">SMP Warga</div>
           <div className="sidebar-brand-sub">Surakarta</div>
         </div>
+        <button
+          type="button"
+          className="sidebar-close"
+          aria-label="Tutup menu"
+          onClick={() => setMobileOpen(false)}
+        >
+          <IconX />
+        </button>
       </div>
 
       {/* Nav */}
-      <nav className="sidebar-nav">
+      <nav className="sidebar-nav" onClick={handleNavClick}>
         <div className="sidebar-group-label">Menu</div>
 
         {showTatib && (
@@ -140,6 +188,7 @@ export function Sidebar({ name, sub, initials, role, ekskulExtra = false, hasEks
         </form>
       </div>
 
-    </aside>
+      </aside>
+    </>
   );
 }

@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Offline — SMP Warga</title>
+<style>
+  html, body { height: 100%; margin: 0; }
+  body {
+    display: flex; align-items: center; justify-content: center;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: #f0f2f5; color: #0f172a; text-align: center; padding: 24px;
+  }
+  .box { max-width: 320px; }
+  img { width: 56px; height: 56px; border-radius: 12px; margin-bottom: 16px; }
+  h1 { font-size: 17px; margin: 0 0 8px; }
+  p { font-size: 14px; color: #475569; margin: 0; line-height: 1.5; }
+  button {
+    margin-top: 20px; padding: 10px 20px; border-radius: 8px; border: none;
+    background: #0f172a; color: #fff; font-size: 14px; font-weight: 600; cursor: pointer;
+  }
+</style>
+</head>
+<body>
+  <div class="box">
+    <img src="/icons/icon-192.png" alt="" />
+    <h1>Tidak ada koneksi internet</h1>
+    <p>Halaman ini butuh koneksi internet. Periksa jaringan Anda lalu coba lagi.</p>
+    <button onclick="location.reload()">Coba Lagi</button>
+  </div>
+</body>
+</html>

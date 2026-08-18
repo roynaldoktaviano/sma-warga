@@ -55,6 +55,12 @@ export const IconTrash = (p: P) => (
   </svg>
 );
 
+export const IconMenu = (p: P) => (
+  <svg {...base(p)} strokeWidth={2.2}>
+    <path d="M3 6h18M3 12h18M3 18h18" />
+  </svg>
+);
+
 export const IconX = (p: P) => (
   <svg {...base(p)} strokeWidth={2.2}>
     <path d="M18 6L6 18M6 6l12 12" />
