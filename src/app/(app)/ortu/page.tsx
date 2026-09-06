@@ -6,15 +6,10 @@ import { Avatar } from "@/components/Avatar";
 import { StatusPill } from "@/components/StatusPill";
 import { Meter } from "@/components/Meter";
 import { Ledger } from "@/components/Ledger";
+import { RiwayatPresensi } from "@/components/RiwayatPresensi";
 import { IconInfo } from "@/components/icons";
 
 export const dynamic = "force-dynamic";
-
-const STATUS_LABEL: Record<string, string> = { HADIR: "Hadir", IZIN: "Izin", SAKIT: "Sakit", ALPA: "Alpa" };
-
-function formatTgl(d: Date | string) {
-  return new Date(d).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
-}
 
 export default async function OrtuPage() {
   const session = await requireSiswa();
@@ -138,13 +133,7 @@ export default async function OrtuPage() {
                 <div className="mini"><div className="mini-num down">{absen.alpa}</div><div className="mini-lab">Alpa</div></div>
               </div>
               <div className="card riwayat-list">
-                {siswa.presensi.map(r => (
-                  <div key={r.id} className="riwayat-row">
-                    <span className="riwayat-date">{formatTgl(r.tanggal)}</span>
-                    <span className={`absen-pill absen-pill--${r.status.toLowerCase()}`}>{STATUS_LABEL[r.status]}</span>
-                    <span className="riwayat-ket">{r.keterangan || ""}</span>
-                  </div>
-                ))}
+                <RiwayatPresensi rows={siswa.presensi} />
               </div>
             </>
           )}
@@ -170,14 +159,13 @@ export default async function OrtuPage() {
                 <>
                   <div className="riwayat-sub-label">Riwayat Presensi Ekskul</div>
                   <div className="riwayat-list" style={{ margin: "0 -16px -16px" }}>
-                    {siswa.presensiEkskul.map(pe => (
-                      <div key={pe.id} className="riwayat-row riwayat-row--ekskul">
-                        <span className="riwayat-ekskul-name">{pe.ekskul.nama}</span>
-                        <span className="riwayat-date">{formatTgl(pe.tanggal)}</span>
-                        <span className={`absen-pill absen-pill--${pe.status.toLowerCase()}`}>{STATUS_LABEL[pe.status]}</span>
-                        <span className="riwayat-ket">{pe.keterangan || ""}</span>
-                      </div>
-                    ))}
+                    <RiwayatPresensi
+                      ekskul
+                      rows={siswa.presensiEkskul.map(pe => ({
+                        id: pe.id, tanggal: pe.tanggal, status: pe.status,
+                        keterangan: pe.keterangan, ekskulNama: pe.ekskul.nama,
+                      }))}
+                    />
                   </div>
                 </>
               )}

@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { AccountForm } from "@/components/AccountForm";
 import { ResetPasswordSiswaButton } from "@/components/ResetPasswordSiswaButton";
 import { ResetPasswordOrtuButton } from "@/components/ResetPasswordOrtuButton";
+import { ResetPoinSiswaButton } from "@/components/ResetPoinSiswaButton";
 import { IzinGantiPasswordToggle } from "@/components/IzinGantiPasswordToggle";
 
 export const dynamic = "force-dynamic";
@@ -71,6 +72,20 @@ export default async function PengaturanPage() {
               Kalau nonaktif, kata sandi mereka hanya bisa direset oleh Waka Kesiswaan / Kepsek di sini.
             </p>
             <IzinGantiPasswordToggle enabled={sekolah?.izinGantiPasswordSiswa ?? false} />
+          </div>
+        </div>
+      )}
+
+      {/* Khusus Kepala Sekolah */}
+      {staff.role === "KEPSEK" && (
+        <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 16 }}>
+          <div className="card card-pad">
+            <div className="settings-section-title">Reset Poin Siswa</div>
+            <p style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 14 }}>
+              Mengembalikan poin <b>semua siswa</b> ke 100 dan menghapus permanen seluruh riwayat catatan pelanggaran &amp; prestasi.
+              Gunakan ini di awal semester/tahun ajaran baru. Tindakan ini tidak bisa dibatalkan.
+            </p>
+            <ResetPoinSiswaButton />
           </div>
         </div>
       )}

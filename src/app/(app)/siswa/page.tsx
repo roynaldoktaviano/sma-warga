@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { requireStaff, canManage, canDownload } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { currentPoints } from "@/lib/points";
@@ -12,6 +13,7 @@ export const dynamic = "force-dynamic";
 export default async function SiswaPage() {
   const session = await requireStaff();
   const role = session.role ?? "";
+  if (!canDownload(role)) redirect("/presensi");
 
   const siswa = await prisma.siswa.findMany({
     include: { catatan: { select: { poin: true, statusVerif: true } } },

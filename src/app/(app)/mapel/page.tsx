@@ -62,18 +62,18 @@ export default async function MapelPage() {
           </div>
           {mapelList.map(m => (
             <div key={m.id} className={"mapel-table-row" + (isManager ? "" : " mapel-table-row--noaction")}>
-              <div>
+              <div className="mapel-cell-kode">
                 {m.kode
                   ? <span className="mapel-kode-badge">{m.kode}</span>
                   : <span style={{ color: "var(--ink-faint)", fontSize: 12 }}>—</span>}
               </div>
-              <span style={{ fontWeight: 500, fontSize: 14 }}>{m.nama}</span>
-              <div style={{ display: "flex", gap: 5, flexWrap: "wrap", alignItems: "center" }}>
+              <span className="mapel-cell-nama" style={{ fontWeight: 500, fontSize: 14 }}>{m.nama}</span>
+              <div className="mapel-cell-kelas" style={{ display: "flex", gap: 5, flexWrap: "wrap", alignItems: "center" }}>
                 {m.kelas
                   ? kelasLabel(m.kelas)
                   : <span className="mapel-kelas-badge mapel-kelas-badge--all">Semua</span>}
               </div>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+              <div className="mapel-cell-guru" style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                 {m.guru.length === 0
                   ? <span style={{ fontSize: 12.5, color: "var(--ink-faint)", fontStyle: "italic" }}>Belum ada guru</span>
                   : m.guru.map(g => (
@@ -85,7 +85,9 @@ export default async function MapelPage() {
                 }
               </div>
               {isManager && (
-                <DeleteMapelButton id={m.id} nama={m.nama} />
+                <div className="mapel-cell-action">
+                  <DeleteMapelButton id={m.id} nama={m.nama} />
+                </div>
               )}
             </div>
           ))}

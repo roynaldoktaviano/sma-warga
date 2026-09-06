@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { requireStaff, canInput } from "@/lib/auth";
+import { redirect } from "next/navigation";
+import { requireStaff, canInput, canViewTatib } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { currentPoints, statusOf } from "@/lib/points";
 import { daysSince, fmtTanggal } from "@/lib/format";
@@ -17,6 +18,7 @@ const VERIF_LABEL: Record<string, { label: string; color: string; bg: string }> 
 export default async function TatibPage() {
   const session = await requireStaff();
   const role = session.role ?? "";
+  if (!canViewTatib(role)) redirect("/presensi");
 
   const [siswa, recentCatatan] = await Promise.all([
     prisma.siswa.findMany({
@@ -116,15 +118,7 @@ export default async function TatibPage() {
             </div>
           ) : (
             <>
-              <div style={{
-                display: "grid",
-                gridTemplateColumns: "1fr 140px 80px 90px 90px",
-                padding: "8px 16px",
-                background: "var(--surface-2)",
-                borderBottom: "1px solid var(--line)",
-                fontSize: 11, fontWeight: 700, textTransform: "uppercase",
-                letterSpacing: ".05em", color: "var(--ink-faint)",
-              }}>
+              <div className="dash-feed-head">
                 <span>Siswa &amp; Kategori</span>
                 <span>Tanggal</span>
                 <span>Poin</span>
@@ -135,52 +129,37 @@ export default async function TatibPage() {
                 const isPel = c.jenis === "PELANGGARAN";
                 const verif = VERIF_LABEL[c.statusVerif] ?? VERIF_LABEL.PENDING;
                 return (
-                  <Link
-                    key={c.id}
-                    href={`/siswa/${c.siswa.id}`}
-                    style={{ textDecoration: "none", color: "inherit" }}
-                  >
-                    <div style={{
-                      display: "grid",
-                      gridTemplateColumns: "1fr 140px 80px 90px 90px",
-                      padding: "10px 16px",
-                      borderBottom: "1px solid var(--line-soft)",
-                      alignItems: "center",
-                      transition: "background .1s",
-                    }}
-                      className="tatib-row"
+                  <Link key={c.id} href={`/siswa/${c.siswa.id}`} className="dash-feed-row">
+                    <div className="dash-feed-cell-siswa">
+                      <div style={{ fontSize: 13, fontWeight: 500 }}>{c.siswa.nama}</div>
+                      <div style={{ fontSize: 11.5, color: "var(--ink-soft)" }}>
+                        {c.siswa.kelas} · {c.kategori}
+                      </div>
+                    </div>
+                    <div className="dash-feed-cell-tanggal">
+                      {fmtTanggal(c.tanggal)}
+                    </div>
+                    <div
+                      className="dash-feed-cell-poin"
+                      style={{ color: isPel ? "var(--bad)" : "var(--good)" }}
                     >
-                      <div>
-                        <div style={{ fontSize: 13, fontWeight: 500 }}>{c.siswa.nama}</div>
-                        <div style={{ fontSize: 11.5, color: "var(--ink-soft)" }}>
-                          {c.siswa.kelas} · {c.kategori}
-                        </div>
-                      </div>
-                      <div style={{ fontSize: 12.5, color: "var(--ink-soft)" }}>
-                        {fmtTanggal(c.tanggal)}
-                      </div>
-                      <div style={{
-                        fontSize: 13, fontFamily: "var(--mono)", fontWeight: 700,
-                        color: isPel ? "var(--bad)" : "var(--good)",
-                      }}>
-                        {isPel ? "−" : "+"}{Math.abs(c.poin)}
-                      </div>
-                      <span style={{
-                        fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 4,
+                      {isPel ? "−" : "+"}{Math.abs(c.poin)}
+                    </div>
+                    <span
+                      className="dash-feed-cell-jenis"
+                      style={{
                         background: isPel ? "var(--bad-bg)" : "var(--good-bg)",
                         color: isPel ? "var(--bad)" : "var(--good)",
-                        width: "fit-content",
-                      }}>
-                        {isPel ? "Pelanggaran" : "Prestasi"}
-                      </span>
-                      <span style={{
-                        fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 4,
-                        background: verif.bg, color: verif.color,
-                        width: "fit-content",
-                      }}>
-                        {verif.label}
-                      </span>
-                    </div>
+                      }}
+                    >
+                      {isPel ? "Pelanggaran" : "Prestasi"}
+                    </span>
+                    <span
+                      className="dash-feed-cell-status"
+                      style={{ background: verif.bg, color: verif.color }}
+                    >
+                      {verif.label}
+                    </span>
                   </Link>
                 );
               })}

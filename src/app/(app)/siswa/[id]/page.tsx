@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
-import { requireStaff, canVerify as checkCanVerify, canInput, canManage } from "@/lib/auth";
+import { notFound, redirect } from "next/navigation";
+import { requireStaff, canVerify as checkCanVerify, canInput, canManage, canViewTatib } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { currentPoints, studentStats, statusOf } from "@/lib/points";
 import { Avatar } from "@/components/Avatar";
@@ -10,19 +10,15 @@ import { Ledger } from "@/components/Ledger";
 import { RecordModalButton } from "@/components/RecordModalButton";
 import { DeleteStudentButton } from "@/components/DeleteStudentButton";
 import { UpdateStatusButton } from "@/components/UpdateStatusButton";
+import { RiwayatPresensi } from "@/components/RiwayatPresensi";
 import { IconBack } from "@/components/icons";
 
 export const dynamic = "force-dynamic";
 
-const STATUS_LABEL: Record<string, string> = { HADIR: "Hadir", IZIN: "Izin", SAKIT: "Sakit", ALPA: "Alpa" };
-
-function formatTgl(d: Date | string) {
-  return new Date(d).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
-}
-
 export default async function SiswaPage({ params }: { params: { id: string } }) {
   const session = await requireStaff();
   const role = session.role ?? "";
+  if (!canViewTatib(role)) redirect("/presensi");
 
   const s = await prisma.siswa.findUnique({
     where: { id: params.id },
@@ -162,13 +158,7 @@ export default async function SiswaPage({ params }: { params: { id: string } }) 
                 <div className="mini"><div className="mini-num down">{absen.alpa}</div><div className="mini-lab">Alpa</div></div>
               </div>
               <div className="card riwayat-list">
-                {s.presensi.map(r => (
-                  <div key={r.id} className="riwayat-row">
-                    <span className="riwayat-date">{formatTgl(r.tanggal)}</span>
-                    <span className={`absen-pill absen-pill--${r.status.toLowerCase()}`}>{STATUS_LABEL[r.status]}</span>
-                    <span className="riwayat-ket">{r.keterangan || ""}</span>
-                  </div>
-                ))}
+                <RiwayatPresensi rows={s.presensi} />
               </div>
             </>
           )}
@@ -194,14 +184,13 @@ export default async function SiswaPage({ params }: { params: { id: string } }) 
                 <>
                   <div className="riwayat-sub-label">Riwayat Presensi Ekskul</div>
                   <div className="riwayat-list" style={{ margin: "0 -16px -16px" }}>
-                    {s.presensiEkskul.map(pe => (
-                      <div key={pe.id} className="riwayat-row riwayat-row--ekskul">
-                        <span className="riwayat-ekskul-name">{pe.ekskul.nama}</span>
-                        <span className="riwayat-date">{formatTgl(pe.tanggal)}</span>
-                        <span className={`absen-pill absen-pill--${pe.status.toLowerCase()}`}>{STATUS_LABEL[pe.status]}</span>
-                        <span className="riwayat-ket">{pe.keterangan || ""}</span>
-                      </div>
-                    ))}
+                    <RiwayatPresensi
+                      ekskul
+                      rows={s.presensiEkskul.map(pe => ({
+                        id: pe.id, tanggal: pe.tanggal, status: pe.status,
+                        keterangan: pe.keterangan, ekskulNama: pe.ekskul.nama,
+                      }))}
+                    />
                   </div>
                 </>
               )}

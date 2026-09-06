@@ -10,7 +10,8 @@ export function LoginForm() {
   const [err, setErr] = useState("");
   const [pending, start] = useTransition();
 
-  function submit() {
+  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
     setErr("");
     start(async () => {
       const res = await loginAction(u, p);
@@ -18,17 +19,13 @@ export function LoginForm() {
     });
   }
 
-  function onKey(e: React.KeyboardEvent<HTMLInputElement>) {
-    if (e.key === "Enter") submit();
-  }
-
   return (
-    <div className="auth-form">
+    <form className="auth-form" onSubmit={handleSubmit} noValidate>
       <h2>Masuk</h2>
       <p className="lead">Gunakan akun yang diberikan sekolah.</p>
 
       {err ? (
-        <div className="auth-error show">
+        <div className="auth-error show" role="alert">
           <IconWarn />
           <span>{err}</span>
         </div>
@@ -36,15 +33,15 @@ export function LoginForm() {
 
       <div className="field">
         <label htmlFor="lu">Username / NISN</label>
-        <input id="lu" type="text" autoComplete="username" placeholder="Username, NISN siswa, atau ortu-NISN" value={u} onChange={(e) => setU(e.target.value)} onKeyDown={onKey} />
+        <input id="lu" name="username" type="text" autoComplete="username" placeholder="Username, NISN siswa, atau ortu-NISN" value={u} onChange={(e) => setU(e.target.value)} required />
       </div>
       <div className="field">
         <label htmlFor="lp">Kata sandi</label>
-        <input id="lp" type="password" autoComplete="current-password" placeholder="••••••••" value={p} onChange={(e) => setP(e.target.value)} onKeyDown={onKey} />
+        <input id="lp" name="password" type="password" autoComplete="current-password" placeholder="••••••••" value={p} onChange={(e) => setP(e.target.value)} required />
       </div>
-      <button className="btn btn-accent btn-block" onClick={submit} disabled={pending}>
+      <button type="submit" className="btn btn-accent btn-block" disabled={pending}>
         {pending ? "Memeriksa…" : "Masuk"}
       </button>
-    </div>
+    </form>
   );
 }

@@ -59,7 +59,7 @@ export default async function TahunAjaranPage() {
           </div>
           {tahunList.map((ta) => (
             <div key={ta.id} className="ta-list-row">
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <div className="ta-cell-nama" style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 <div className="ta-list-icon">
                   <IconFlag />
                 </div>
@@ -72,25 +72,25 @@ export default async function TahunAjaranPage() {
                   </div>
                 </div>
               </div>
-              <span className={"ta-status ta-status--" + ta.status.toLowerCase()}>
+              <span className={"ta-status ta-cell-status ta-status--" + ta.status.toLowerCase()}>
                 {STATUS_LABEL[ta.status] ?? ta.status}
               </span>
-              <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 13, color: "var(--ink-soft)" }}>
+              <div className="ta-cell-kelas" style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 13, color: "var(--ink-soft)" }}>
                 <IconGrid style={{ width: 13, height: 13 }} />
                 {ta._count.kelas} kelas
               </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 13, color: "var(--ink-soft)" }}>
+              <div className="ta-cell-ekskul" style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 13, color: "var(--ink-soft)" }}>
                 <IconCalendar style={{ width: 13, height: 13 }} />
                 {ta._count.ekskul} ekskul
               </div>
-              <div>
+              <div className="ta-cell-aktif">
                 {ta.isActive ? (
                   <span className="ta-active-badge">Aktif</span>
                 ) : (
                   <SetActiveTahunAjaranButton id={ta.id} nama={`${ta.nama} ${semLabel(ta.semester)}`} />
                 )}
               </div>
-              <div style={{ display: "flex", gap: 6 }}>
+              <div className="ta-cell-action" style={{ display: "flex", gap: 6 }}>
                 <TahunAjaranStatusButton
                   id={ta.id}
                   status={ta.status as "PERSIAPAN" | "BERJALAN" | "SELESAI"}

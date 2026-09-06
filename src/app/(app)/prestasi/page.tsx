@@ -1,10 +1,14 @@
-import { requireStaff } from "@/lib/auth";
+import { redirect } from "next/navigation";
+import { requireStaff, canViewTatib } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { AddPrestasiModalButton } from "@/components/AddPrestasiModalButton";
 import { DeletePrestasiButton } from "@/components/DeletePrestasiButton";
+import { Pagination } from "@/components/Pagination";
 import { IconTrophy, IconUp, IconGauge } from "@/components/icons";
 
 export const dynamic = "force-dynamic";
+
+const PAGE_SIZE = 25;
 
 const TINGKAT_LABEL: Record<string, string> = {
   SEKOLAH: "Sekolah",
@@ -13,28 +17,43 @@ const TINGKAT_LABEL: Record<string, string> = {
   NASIONAL: "Nasional",
   INTERNASIONAL: "Internasional",
 };
-const TINGKAT_COLOR: Record<string, string> = {
-  SEKOLAH: "#64748b",
-  KOTA: "#2563eb",
-  PROVINSI: "#16a34a",
-  NASIONAL: "#d97706",
-  INTERNASIONAL: "#9333ea",
+// Kelas warna (lihat .tingkat-badge--* di globals.css) — pakai class, bukan
+// inline style, supaya varian dark-mode-nya bisa ikut aktif otomatis.
+const TINGKAT_CLASS: Record<string, string> = {
+  SEKOLAH: "tingkat-badge--sekolah",
+  KOTA: "tingkat-badge--kota",
+  PROVINSI: "tingkat-badge--provinsi",
+  NASIONAL: "tingkat-badge--nasional",
+  INTERNASIONAL: "tingkat-badge--internasional",
 };
 
-export default async function PrestasiPage() {
-  await requireStaff();
+export default async function PrestasiPage({
+  searchParams,
+}: {
+  searchParams?: { page?: string };
+}) {
+  const session = await requireStaff();
+  if (!canViewTatib(session.role)) redirect("/presensi");
 
-  const [siswa, semua] = await Promise.all([
+  const totalPrestasi = await prisma.prestasi.count();
+  const totalPages = Math.max(1, Math.ceil(totalPrestasi / PAGE_SIZE));
+  const page = Math.min(totalPages, Math.max(1, parseInt(searchParams?.page ?? "1", 10) || 1));
+
+  const [siswa, semua, perTingkat] = await Promise.all([
     prisma.siswa.findMany({ select: { id: true, nama: true, kelas: true }, orderBy: { nama: "asc" } }),
     prisma.prestasi.findMany({
       include: { siswa: { select: { nama: true, kelas: true } } },
       orderBy: [{ tanggal: "desc" }, { createdAt: "desc" }],
+      skip: (page - 1) * PAGE_SIZE,
+      take: PAGE_SIZE,
     }),
+    prisma.prestasi.groupBy({ by: ["tingkat"], _count: { _all: true } }),
   ]);
 
-  const totalNasional = semua.filter((p) => p.tingkat === "NASIONAL" || p.tingkat === "INTERNASIONAL").length;
-  const totalProvinsi = semua.filter((p) => p.tingkat === "PROVINSI").length;
-  const totalKota = semua.filter((p) => p.tingkat === "KOTA").length;
+  const countOf = (t: string) => perTingkat.find((g) => g.tingkat === t)?._count._all ?? 0;
+  const totalNasional = countOf("NASIONAL") + countOf("INTERNASIONAL");
+  const totalProvinsi = countOf("PROVINSI");
+  const totalKota = countOf("KOTA");
 
   return (
     <div className="shell">
@@ -52,7 +71,7 @@ export default async function PrestasiPage() {
         <div className="stat">
           <div className="stat-icon stat-icon--amber"><IconTrophy /></div>
           <div className="stat-label">Total Prestasi</div>
-          <div className="stat-num">{semua.length}</div>
+          <div className="stat-num">{totalPrestasi}</div>
           <div className="stat-foot">tercatat di sistem</div>
         </div>
         <div className="stat">
@@ -102,7 +121,7 @@ export default async function PrestasiPage() {
                 <span>{p.kategori}</span>
               </div>
               <div>
-                <span className="tingkat-badge" style={{ background: TINGKAT_COLOR[p.tingkat] + "20", color: TINGKAT_COLOR[p.tingkat], border: `1px solid ${TINGKAT_COLOR[p.tingkat]}44` }}>
+                <span className={"tingkat-badge " + (TINGKAT_CLASS[p.tingkat] ?? "")}>
                   {TINGKAT_LABEL[p.tingkat]}
                 </span>
               </div>
@@ -115,6 +134,8 @@ export default async function PrestasiPage() {
           ))
         )}
       </div>
+
+      <Pagination page={page} totalPages={totalPages} total={totalPrestasi} noun="prestasi" />
     </div>
   );
 }

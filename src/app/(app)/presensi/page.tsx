@@ -5,13 +5,15 @@ import { DeletePresensiButton } from "@/components/DeletePresensiButton";
 import { PresensiKelasButton } from "@/components/PresensiKelasButton";
 import { ExportPresensiButton } from "@/components/ExportPresensiButton";
 import { PresensiDatePicker } from "@/components/PresensiDatePicker";
+import { RiwayatHarianModalButton } from "@/components/RiwayatHarianModalButton";
 import { IconCalendar, IconUsers, IconX, IconWarn } from "@/components/icons";
 
 export const dynamic = "force-dynamic";
 
 const STATUS_LABEL: Record<string, string> = { HADIR: "Hadir", IZIN: "Izin", SAKIT: "Sakit", ALPA: "Alpa" };
-const STATUS_BG: Record<string, string>    = { HADIR: "var(--good-bg)", IZIN: "#fffbeb", SAKIT: "#eff6ff", ALPA: "#fff5f5" };
-const STATUS_COLOR: Record<string, string> = { HADIR: "var(--good)", IZIN: "var(--warn)", SAKIT: "#2563eb", ALPA: "var(--bad)" };
+// Sama dengan skema warna .absen-pill--* (globals.css) — supaya konsisten & ikut dark mode.
+const STATUS_BG: Record<string, string>    = { HADIR: "var(--good-bg)", IZIN: "var(--info-bg)", SAKIT: "var(--warn-bg)", ALPA: "var(--bad-bg)" };
+const STATUS_COLOR: Record<string, string> = { HADIR: "var(--good)", IZIN: "var(--info)", SAKIT: "var(--warn)", ALPA: "var(--bad)" };
 
 export default async function PresensiPage({
   searchParams,
@@ -35,7 +37,7 @@ export default async function PresensiPage({
     prisma.siswa.findMany({
       where: { status: "AKTIF" },
       orderBy: [{ kelas: "asc" }, { nama: "asc" }],
-      select: { id: true, nama: true, kelas: true },
+      select: { id: true, nama: true, kelas: true, nisn: true },
     }),
     prisma.presensi.findMany({
       where: { tanggal: todayDate },
@@ -206,25 +208,16 @@ export default async function PresensiPage({
           Status seluruh siswa pada {fmtTanggal(tanggalHarianDate)} — {semuaSiswa.length - Object.keys(harianMap).length} hadir,{" "}
           {Object.keys(harianMap).length} tidak hadir.
         </p>
-        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+        <div className="kelas-grid">
           {kelasArr.map(([kelas, siswa]) => (
-            <div key={kelas} className="card card-pad">
-              <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 10 }}>{kelas}</div>
-              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                {siswa.map(s => {
-                  const st = harianMap[s.id] ?? "HADIR";
-                  return (
-                    <span key={s.id} style={{
-                      fontSize: 11, padding: "2px 8px", borderRadius: 20,
-                      background: STATUS_BG[st], color: STATUS_COLOR[st],
-                      fontWeight: st === "HADIR" ? 400 : 600,
-                    }}>
-                      {s.nama.split(" ")[0]} · {STATUS_LABEL[st]}
-                    </span>
-                  );
-                })}
-              </div>
-            </div>
+            <RiwayatHarianModalButton
+              key={kelas}
+              kelas={kelas}
+              siswa={siswa.map(s => ({
+                id: s.id, nama: s.nama, nisn: s.nisn,
+                status: (harianMap[s.id] ?? "HADIR") as "HADIR" | "IZIN" | "SAKIT" | "ALPA",
+              }))}
+            />
           ))}
         </div>
       </div>
@@ -257,7 +250,6 @@ export default async function PresensiPage({
                     <span className="absen-badge" style={{
                       background: STATUS_BG[p.status],
                       color: STATUS_COLOR[p.status],
-                      border: `1px solid ${STATUS_COLOR[p.status]}44`,
                     }}>
                       {STATUS_LABEL[p.status] ?? p.status}
                     </span>

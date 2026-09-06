@@ -1,12 +1,14 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { resetPasswordOrtuAction } from "@/app/actions";
+import { useRouter } from "next/navigation";
+import { resetPoinSiswaAction } from "@/app/actions";
 import { toast } from "./Toaster";
 
-export function ResetPasswordOrtuButton() {
+export function ResetPoinSiswaButton() {
   const [confirm, setConfirm] = useState(false);
   const [pending, start] = useTransition();
+  const router = useRouter();
 
   if (!confirm) {
     return (
@@ -15,7 +17,7 @@ export function ResetPasswordOrtuButton() {
         onClick={() => setConfirm(true)}
         style={{ borderColor: "var(--bad)", color: "var(--bad)" }}
       >
-        Reset Password Orang Tua ke NIS
+        Reset Poin Semua Siswa
       </button>
     );
   }
@@ -23,8 +25,8 @@ export function ResetPasswordOrtuButton() {
   return (
     <div className="confirm-delete">
       <span>
-        Reset password <b>SEMUA</b> orang tua/wali ke NIS anak masing-masing? Orang tua yang sudah ubah
-        password sendiri juga akan <b>ter-reset</b>.
+        Reset poin <b>SEMUA</b> siswa ke 100? Seluruh riwayat catatan pelanggaran &amp; prestasi akan{" "}
+        <b>terhapus permanen</b> dan tidak bisa dikembalikan.
       </span>
       <div className="confirm-actions">
         <button className="btn" onClick={() => setConfirm(false)}>Batal</button>
@@ -33,14 +35,19 @@ export function ResetPasswordOrtuButton() {
           disabled={pending}
           onClick={() => {
             start(async () => {
-              const res = await resetPasswordOrtuAction();
-              if (res.ok) toast(`Password ${res.count} orang tua berhasil direset ke NIS.`);
-              else toast(res.error ?? "Gagal reset password.", "bad");
-              setConfirm(false);
+              const res = await resetPoinSiswaAction();
+              if (res.ok) {
+                toast(`Poin semua siswa direset ke 100 (${res.count} catatan dihapus).`);
+                setConfirm(false);
+                router.refresh();
+              } else {
+                toast(res.error, "bad");
+                setConfirm(false);
+              }
             });
           }}
         >
-          {pending ? "Mereset…" : "Ya, Reset Password"}
+          {pending ? "Mereset…" : "Ya, Reset Poin"}
         </button>
       </div>
     </div>

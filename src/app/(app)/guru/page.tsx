@@ -90,7 +90,7 @@ export default async function GuruPage() {
                   <div style={{ fontSize: 11.5, color: "var(--ink-faint)", fontFamily: "var(--mono)" }}>@{s.username}</div>
                 </div>
               </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+              <div className="guru-cell-role" style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                 <span className={"guru-role-badge " + (ROLE_COLOR[s.role] ?? "")}>
                   {ROLE_LABEL[s.role as keyof typeof ROLE_LABEL] ?? s.role}
                 </span>
@@ -98,7 +98,7 @@ export default async function GuruPage() {
                   <span className="guru-role-badge guru-role--ekskul">+ Ekskul</span>
                 )}
               </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+              <div className="guru-cell-mapel" style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                 {s.mapel.length === 0
                   ? <span style={{ fontSize: 12.5, color: "var(--ink-faint)", fontStyle: "italic" }}>—</span>
                   : s.mapel.map(m => (
@@ -117,18 +117,18 @@ export default async function GuruPage() {
                   />
                 )}
               </div>
-              <div style={{ fontSize: 13, color: "var(--ink-soft)" }}>
+              <div className="guru-cell-wali" style={{ fontSize: 13, color: "var(--ink-soft)" }}>
                 {s.waliKelas.length > 0
                   ? s.waliKelas.map(k => k.nama).join(", ")
                   : <span style={{ color: "var(--ink-faint)" }}>—</span>}
               </div>
-              <div style={{ fontSize: 13, color: "var(--ink-soft)" }}>
+              <div className="guru-cell-ekskul" style={{ fontSize: 13, color: "var(--ink-soft)" }}>
                 {s.ekskulGuru.length > 0
                   ? s.ekskulGuru.map(g => g.ekskul.nama).join(", ")
                   : <span style={{ color: "var(--ink-faint)" }}>—</span>}
               </div>
               {isAdmin && (
-                <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
+                <div className="guru-cell-action" style={{ display: "flex", alignItems: "center", gap: 2 }}>
                   <EditStaffModalButton staff={{ id: s.id, nama: s.nama, username: s.username, role: s.role, ekskulExtra: s.ekskulExtra }} />
                   <DeleteStaffButton id={s.id} isSelf={s.id === session.sub} />
                 </div>

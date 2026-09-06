@@ -38,8 +38,9 @@ enum Tingkat {
 
 model Sekolah {
   id                      String                @id @default(cuid())
+  singleton               Boolean               @unique @default(true) // kunci DB: mencegah baris Sekolah kedua — app ini single-tenant per deployment
   nama                    String
-  izinGantiPasswordSiswa  Boolean               @default(false) // siswa/ortu boleh ganti password sendiri
+  izinGantiPasswordSiswa  Boolean               @default(true) // siswa/ortu boleh ganti password sendiri
   staff                   Staff[]
   siswa                   Siswa[]
   tahunAjaran             TahunAjaran[]

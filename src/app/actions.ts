@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { destroySession, requireStaff, canInput, canVerify, canManage, canViewTatib } from "@/lib/auth";
+import { POIN_AWAL } from "@/lib/points";
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
 
@@ -582,6 +583,23 @@ export async function setIzinGantiPasswordSiswaAction(enabled: boolean): Promise
   return { ok: true };
 }
 
+// ---------- Reset poin semua siswa (hapus semua catatan tatib & kembalikan poin awal ke 100) ----------
+export async function resetPoinSiswaAction(): Promise<ActionResult & { count?: number }> {
+  const session = await requireStaff();
+  if (session.role !== "KEPSEK")
+    return { ok: false, error: "Hanya Kepala Sekolah yang bisa mereset poin siswa." };
+
+  const [{ count }] = await prisma.$transaction([
+    prisma.catatan.deleteMany({}),
+    prisma.siswa.updateMany({ data: { poinAwal: POIN_AWAL } }),
+  ]);
+
+  revalidatePath("/dashboard");
+  revalidatePath("/catatan");
+  revalidatePath("/ortu");
+  return { ok: true, count };
+}
+
 // ---------- Ganti password sendiri — siswa / orang tua ----------
 export async function updateSiswaPasswordAction(input: {
   currentPassword: string;
@@ -627,6 +645,8 @@ export async function addStaffAction(input: {
   const session = await requireStaff();
   if (!canVerify(session.role))
     return { ok: false, error: "Hanya Waka Kesiswaan atau Kepsek yang bisa menambah akun staff." };
+  if (session.role === "KESISWAAN" && input.role === "KEPSEK")
+    return { ok: false, error: "Waka Kesiswaan tidak bisa membuat akun Kepala Sekolah." };
 
   const nama     = input.nama?.trim();
   const username = input.username?.trim().toLowerCase();
@@ -662,6 +682,8 @@ export async function deleteStaffAction(targetId: string): Promise<ActionResult>
 
   const staff = await prisma.staff.findUnique({ where: { id: targetId } });
   if (!staff) return { ok: false, error: "Akun tidak ditemukan." };
+  if (session.role === "KESISWAAN" && staff.role === "KEPSEK")
+    return { ok: false, error: "Waka Kesiswaan tidak bisa menghapus akun Kepala Sekolah." };
 
   await prisma.staff.delete({ where: { id: targetId } });
   revalidatePath("/pengaturan");
@@ -690,6 +712,8 @@ export async function updateStaffAction(input: {
 
   const target = await prisma.staff.findUnique({ where: { id: input.id } });
   if (!target) return { ok: false, error: "Akun tidak ditemukan." };
+  if (session.role === "KESISWAAN" && (target.role === "KEPSEK" || input.role === "KEPSEK"))
+    return { ok: false, error: "Waka Kesiswaan tidak bisa mengubah akun Kepala Sekolah." };
 
   if (username !== target.username) {
     const existing = await prisma.staff.findUnique({ where: { username } });

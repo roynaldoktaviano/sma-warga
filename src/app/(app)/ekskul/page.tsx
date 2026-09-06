@@ -56,10 +56,10 @@ export default async function EkskulPage() {
           </div>
           {myEkskul.map((a) => (
             <Link key={a.ekskulId} href={`/ekskul/${a.ekskulId}`} className="ekskul-row ekskul-row--link">
-              <span style={{ fontWeight: 500 }}>{a.ekskul.nama}</span>
-              <span style={{ fontSize: 13, color: "var(--ink-soft)" }}>{a.ekskul.tahunAjaran.nama} {semLabel(a.ekskul.tahunAjaran.semester)}</span>
-              <span style={{ fontSize: 13 }}>{a.ekskul._count.anggota} siswa</span>
-              <span className={"ta-status ta-status--" + a.ekskul.tahunAjaran.status.toLowerCase()}>
+              <span className="ekskul-cell-nama" style={{ fontWeight: 500 }}>{a.ekskul.nama}</span>
+              <span className="ekskul-cell-sub" style={{ fontSize: 13, color: "var(--ink-soft)" }}>{a.ekskul.tahunAjaran.nama} {semLabel(a.ekskul.tahunAjaran.semester)}</span>
+              <span className="ekskul-cell-anggota" style={{ fontSize: 13 }}>{a.ekskul._count.anggota} siswa</span>
+              <span className={"ta-status ekskul-cell-status ta-status--" + a.ekskul.tahunAjaran.status.toLowerCase()}>
                 {TA_LABEL[a.ekskul.tahunAjaran.status] ?? a.ekskul.tahunAjaran.status}
               </span>
             </Link>
@@ -143,12 +143,12 @@ export default async function EkskulPage() {
                   </div>
                   {ta.ekskul.map((e) => (
                     <Link key={e.id} href={`/ekskul/${e.id}`} className="ekskul-row ekskul-row--link">
-                      <span style={{ fontWeight: 500 }}>{e.nama}</span>
-                      <span style={{ fontSize: 13, color: "var(--ink-soft)" }}>
+                      <span className="ekskul-cell-nama" style={{ fontWeight: 500 }}>{e.nama}</span>
+                      <span className="ekskul-cell-sub" style={{ fontSize: 13, color: "var(--ink-soft)" }}>
                         {e.guru.map(g => g.staff.nama).join(", ") || "—"}
                       </span>
-                      <span style={{ fontSize: 13 }}>{e._count.anggota} siswa</span>
-                      <span className={"ta-status ta-status--" + ta.status.toLowerCase()}>
+                      <span className="ekskul-cell-anggota" style={{ fontSize: 13 }}>{e._count.anggota} siswa</span>
+                      <span className={"ta-status ekskul-cell-status ta-status--" + ta.status.toLowerCase()}>
                         {TA_LABEL[ta.status] ?? ta.status}
                       </span>
                     </Link>
