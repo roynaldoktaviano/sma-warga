@@ -73,12 +73,7 @@ export default async function PengaturanPage() {
             </p>
             <IzinGantiPasswordToggle enabled={sekolah?.izinGantiPasswordSiswa ?? false} />
           </div>
-        </div>
-      )}
 
-      {/* Khusus Kepala Sekolah */}
-      {staff.role === "KEPSEK" && (
-        <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 16 }}>
           <div className="card card-pad">
             <div className="settings-section-title">Reset Poin Siswa</div>
             <p style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 14 }}>

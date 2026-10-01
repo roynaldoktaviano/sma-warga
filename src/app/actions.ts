@@ -586,8 +586,8 @@ export async function setIzinGantiPasswordSiswaAction(enabled: boolean): Promise
 // ---------- Reset poin semua siswa (hapus semua catatan tatib & kembalikan poin awal ke 100) ----------
 export async function resetPoinSiswaAction(): Promise<ActionResult & { count?: number }> {
   const session = await requireStaff();
-  if (session.role !== "KEPSEK")
-    return { ok: false, error: "Hanya Kepala Sekolah yang bisa mereset poin siswa." };
+  if (!canVerify(session.role))
+    return { ok: false, error: "Hanya Waka Kesiswaan atau Kepsek yang bisa mereset poin siswa." };
 
   const [{ count }] = await prisma.$transaction([
     prisma.catatan.deleteMany({}),
